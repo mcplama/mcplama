@@ -1,0 +1,40 @@
+{
+  "id": "mcp-mongodb",
+  "name": "Mongodb",
+  "publisher": "mongodb-js",
+  "logo_url": "https://github.com/mongodb-js.png?size=40&w=25&q=25",
+  "description": "A Model Context Protocol server to connect to MongoDB databases and MongoDB Atlas Clusters.",
+  "icon": "database",
+  "color": "green",
+  "category": "Databases & Data Platforms",
+  "official": true,
+  "version": "2026.6.30",
+  "docs_url": "https://github.com/mongodb-js/mongodb-mcp-server",
+  "runtime": "docker",
+  "transport": "stdio",
+  "docker_image": "mcp/mongodb",
+  "package": null,
+  "args": [],
+  "docker_args": [],
+  "container_port": 8000,
+  "auth_type": "api_token",
+  "auth_mode": "shared",
+  "user_config_schema": [
+    {
+      "key": "MONGODB_URI",
+      "label": "MongoDB connection URI",
+      "type": "secret",
+      "required": true,
+      "placeholder": "Enter value"
+    }
+  ],
+  "tools": [
+    "aggregate",
+    "connect",
+    "count",
+    "explain",
+    "export",
+    "find"
+  ],
+  "requirements": "Configure: MongoDB connection URI"
+}

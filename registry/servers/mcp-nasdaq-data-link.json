@@ -1,0 +1,39 @@
+{
+  "id": "mcp-nasdaq-data-link",
+  "name": "Nasdaq Data Link",
+  "publisher": "stefanoamorelli",
+  "logo_url": "https://github.com/stefanoamorelli.png?size=40&w=25&q=25",
+  "description": "MCP server to interact with the data feeds provided by the Nasdaq Data Link. Developed by the com...",
+  "icon": "rss",
+  "color": "blue",
+  "category": "Databases & Data Platforms",
+  "official": false,
+  "version": "2025.10.31",
+  "docs_url": "https://github.com/stefanoamorelli/nasdaq-data-link-mcp",
+  "runtime": "docker",
+  "transport": "stdio",
+  "docker_image": "mcp/nasdaq-data-link",
+  "package": null,
+  "args": [],
+  "docker_args": [],
+  "container_port": 8000,
+  "auth_type": "api_token",
+  "auth_mode": "shared",
+  "user_config_schema": [
+    {
+      "key": "NASDAQ_DATA_LINK_API_KEY",
+      "label": "Nasdaq Data Link API key",
+      "type": "secret",
+      "required": true,
+      "placeholder": "Enter value"
+    }
+  ],
+  "tools": [
+    "export_dataset",
+    "get_dataset",
+    "get_dataset_metadata",
+    "list_databases",
+    "search_datasets"
+  ],
+  "requirements": "Configure: Nasdaq Data Link API key"
+}

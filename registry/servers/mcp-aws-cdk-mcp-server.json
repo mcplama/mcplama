@@ -1,0 +1,33 @@
+{
+  "id": "mcp-aws-cdk-mcp-server",
+  "name": "Aws Cdk Mcp Server",
+  "publisher": "awslabs",
+  "logo_url": "https://github.com/awslabs.png?size=40&w=25&q=25",
+  "description": "AWS Cloud Development Kit (CDK) best practices, infrastructure as code patterns, and security com...",
+  "icon": "cloud",
+  "color": "orange",
+  "category": "Cloud & Infrastructure",
+  "official": true,
+  "version": "2026.4.16",
+  "docs_url": "https://github.com/awslabs/mcp",
+  "runtime": "docker",
+  "transport": "stdio",
+  "docker_image": "mcp/aws-cdk-mcp-server",
+  "package": null,
+  "args": [],
+  "docker_args": [],
+  "container_port": 8000,
+  "auth_type": "none",
+  "auth_mode": "environment",
+  "user_config_schema": [],
+  "tools": [
+    "CDKGeneralGuidance",
+    "CheckCDKNagSuppressions",
+    "ExplainCDKNagRule",
+    "GenerateBedrockAgentSchema",
+    "GetAwsSolutionsConstructPattern",
+    "LambdaLayerDocumentationProvider",
+    "SearchGenAICDKConstructs"
+  ],
+  "requirements": "No external credentials identified; tool-specific arguments or local runtime configuration may still be required."
+}

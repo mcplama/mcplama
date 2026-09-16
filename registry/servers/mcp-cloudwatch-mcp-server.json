@@ -1,0 +1,67 @@
+{
+  "id": "mcp-cloudwatch-mcp-server",
+  "name": "Cloudwatch Mcp Server",
+  "publisher": "awslabs",
+  "logo_url": "https://github.com/awslabs.png?size=40&w=25&q=25",
+  "description": "Metrics, alarms, and logs analysis.",
+  "icon": "cloud",
+  "color": "orange",
+  "category": "Cloud & Infrastructure",
+  "official": true,
+  "version": "2026.6.30",
+  "docs_url": "https://github.com/awslabs/mcp",
+  "runtime": "docker",
+  "transport": "stdio",
+  "docker_image": "mcp/cloudwatch-mcp-server",
+  "package": null,
+  "args": [],
+  "docker_args": [],
+  "container_port": 8000,
+  "auth_type": "api_token",
+  "auth_mode": "shared",
+  "user_config_schema": [
+    {
+      "key": "AWS_ACCESS_KEY_ID",
+      "label": "AWS access key ID",
+      "type": "secret",
+      "required": true,
+      "placeholder": "Enter value"
+    },
+    {
+      "key": "AWS_SECRET_ACCESS_KEY",
+      "label": "AWS secret access key",
+      "type": "secret",
+      "required": true,
+      "placeholder": "Enter value"
+    },
+    {
+      "key": "AWS_REGION",
+      "label": "AWS region",
+      "type": "text",
+      "required": true,
+      "placeholder": "https://example.com"
+    }
+  ],
+  "tools": [
+    "analyze_log_group",
+    "analyze_metric",
+    "cancel_logs_insight_query",
+    "describe_log_groups",
+    "execute_cwl_insights_batch",
+    "execute_log_insights_query",
+    "execute_promql_query",
+    "execute_promql_range_query",
+    "get_active_alarms",
+    "get_alarm_history",
+    "get_logs_insight_query_results",
+    "get_metric_data",
+    "get_metric_metadata",
+    "get_promql_label_values",
+    "get_promql_labels",
+    "get_promql_series",
+    "get_recommended_metric_alarms",
+    "recommend_indexes_account",
+    "recommend_indexes_loggroup"
+  ],
+  "requirements": "Configure: AWS credentials and CloudWatch Logs IAM permissions"
+}

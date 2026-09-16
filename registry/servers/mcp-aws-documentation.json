@@ -1,0 +1,30 @@
+{
+  "id": "mcp-aws-documentation",
+  "name": "Aws Documentation",
+  "publisher": "awslabs",
+  "logo_url": "https://github.com/awslabs.png?size=40&w=25&q=25",
+  "description": "Tools to access AWS documentation, search for content, and get recommendations.",
+  "icon": "search",
+  "color": "orange",
+  "category": "Cloud & Infrastructure",
+  "official": true,
+  "version": "1.0.0",
+  "docs_url": "https://github.com/awslabs/mcp",
+  "runtime": "docker",
+  "transport": "stdio",
+  "docker_image": "mcp/aws-documentation",
+  "package": null,
+  "args": [],
+  "docker_args": [],
+  "container_port": 8000,
+  "auth_type": "none",
+  "auth_mode": "environment",
+  "user_config_schema": [],
+  "tools": [
+    "read_documentation",
+    "read_sections",
+    "recommend",
+    "search_documentation"
+  ],
+  "requirements": "No external credentials identified; tool-specific arguments or local runtime configuration may still be required."
+}

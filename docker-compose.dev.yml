@@ -1,0 +1,73 @@
+# Contributor development stack. Production users should run the bundled image
+# built from the root Dockerfile instead.
+name: mcplama-dev
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-mcplama}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
+      POSTGRES_DB: ${POSTGRES_DB:-mcplama}
+    networks: [mcplama]
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mcplama -d mcplama"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  broker:
+    build:
+      context: ./server
+      dockerfile: Dockerfile.dev
+    restart: unless-stopped
+    command: python -m uvicorn app.broker.main:app --host 0.0.0.0 --port 9000
+    environment:
+      BROKER_TOKEN: ${BROKER_TOKEN:?BROKER_TOKEN must be set}
+      MCPLAMA_NETWORK: mcplama-dev
+      RUNNER_IMAGE: ${RUNNER_IMAGE:-mcplama/runner:latest}
+    networks: [mcplama]
+    volumes:
+      - ./server:/app
+      - /var/run/docker.sock:/var/run/docker.sock
+
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile.dev
+    restart: unless-stopped
+    command: python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: ${DATABASE_URL:?DATABASE_URL must be set}
+      SECRET_KEY: ${SECRET_KEY:?SECRET_KEY must be set}
+      TOKEN_ENCRYPTION_KEY: ${TOKEN_ENCRYPTION_KEY:?TOKEN_ENCRYPTION_KEY must be set}
+      ENVIRONMENT: development
+      GATEWAY_URL: ${GATEWAY_URL:-http://localhost:8000}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:5173}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:5173}
+      REGISTRY_URL: ${REGISTRY_URL:-https://raw.githubusercontent.com/mcplama/mcplama/refs/heads/main/registry/_catalog.json}
+      BROKER_URL: http://broker:9000
+      BROKER_HOST: broker
+      BROKER_TOKEN: ${BROKER_TOKEN:?BROKER_TOKEN must be set}
+      RUNNER_IMAGE: ${RUNNER_IMAGE:-mcplama/runner:latest}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      broker:
+        condition: service_started
+    networks: [mcplama]
+    volumes:
+      - ./server:/app
+      - ./registry:/app/registry
+
+networks:
+  mcplama:
+    name: mcplama-dev
+
+volumes:
+  postgres_data:

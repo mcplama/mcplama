@@ -1,0 +1,56 @@
+{
+  "id": "mcp-cfn-mcp-server",
+  "name": "Cfn Mcp Server",
+  "publisher": "awslabs",
+  "logo_url": "https://github.com/awslabs.png?size=40&w=25&q=25",
+  "description": "CloudFormation resource management via Cloud Control API.",
+  "icon": "cloud",
+  "color": "orange",
+  "category": "Databases & Data Platforms",
+  "official": true,
+  "version": "2025.11.6",
+  "docs_url": "https://github.com/awslabs/mcp",
+  "runtime": "docker",
+  "transport": "stdio",
+  "docker_image": "mcp/cfn-mcp-server",
+  "package": null,
+  "args": [],
+  "docker_args": [],
+  "container_port": 8000,
+  "auth_type": "api_token",
+  "auth_mode": "shared",
+  "user_config_schema": [
+    {
+      "key": "AWS_ACCESS_KEY_ID",
+      "label": "AWS access key ID",
+      "type": "secret",
+      "required": true,
+      "placeholder": "Enter value"
+    },
+    {
+      "key": "AWS_SECRET_ACCESS_KEY",
+      "label": "AWS secret access key",
+      "type": "secret",
+      "required": true,
+      "placeholder": "Enter value"
+    },
+    {
+      "key": "AWS_REGION",
+      "label": "AWS region",
+      "type": "text",
+      "required": true,
+      "placeholder": "https://example.com"
+    }
+  ],
+  "tools": [
+    "create_resource",
+    "create_template",
+    "delete_resource",
+    "get_resource",
+    "get_resource_request_status",
+    "get_resource_schema_information",
+    "list_resources",
+    "update_resource"
+  ],
+  "requirements": "Configure: AWS credentials and Cloud Control API IAM permissions"
+}

@@ -1,0 +1,28 @@
+# Copyright (c) 2026 MCPlama <dev@mcplama.com>
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+FROM python:3.12-slim
+
+# Install Node.js 20
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl ca-certificates gnupg \
+    && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+    && apt-get install -y --no-install-recommends nodejs \
+    && rm -rf /var/lib/apt/lists/*
+
+# socat bridges supergateway's stdio to the broker's TCP relay for stdio images.
+# This replaces the old docker-in-docker path: the runner used to carry the
+# Docker CLI *and* a mounted /var/run/docker.sock so supergateway could
+# `docker run` the MCP image itself — which meant any MCP image we ran was one
+# command away from root on the host. The runner now has no Docker access at all.
+RUN apt-get update && apt-get install -y --no-install-recommends socat \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install uv
+RUN pip install --no-cache-dir uv
+
+# Pre-install supergateway so first run is fast
+RUN npm install -g supergateway@latest
+
+WORKDIR /app
+ENTRYPOINT []

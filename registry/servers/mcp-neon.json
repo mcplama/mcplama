@@ -1,0 +1,53 @@
+{
+  "id": "mcp-neon",
+  "name": "Neon",
+  "publisher": "neondatabase",
+  "logo_url": "https://github.com/neondatabase.png?size=40&w=25&q=25",
+  "description": "MCP server for interacting with Neon Management API and databases",
+  "icon": "database",
+  "color": "green",
+  "category": "Databases & Data Platforms",
+  "official": true,
+  "version": "2025.6.16",
+  "docs_url": "https://github.com/neondatabase-labs/mcp-server-neon",
+  "runtime": "docker",
+  "transport": "stdio",
+  "docker_image": "mcp/neon",
+  "package": null,
+  "args": [],
+  "docker_args": [],
+  "container_port": 8000,
+  "auth_type": "api_token",
+  "auth_mode": "shared",
+  "user_config_schema": [
+    {
+      "key": "NEON_API_KEY",
+      "label": "Neon API key",
+      "type": "secret",
+      "required": true,
+      "placeholder": "Enter value"
+    }
+  ],
+  "tools": [
+    "__node_version",
+    "complete_database_migration",
+    "complete_query_tuning",
+    "create_branch",
+    "create_project",
+    "delete_branch",
+    "delete_project",
+    "describe_branch",
+    "describe_project",
+    "describe_table_schema",
+    "explain_sql_statement",
+    "get_connection_string",
+    "get_database_tables",
+    "list_projects",
+    "prepare_database_migration",
+    "prepare_query_tuning",
+    "provision_neon_auth",
+    "run_sql",
+    "run_sql_transaction"
+  ],
+  "requirements": "Configure: Neon API key"
+}

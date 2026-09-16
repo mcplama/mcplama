@@ -1,0 +1,32 @@
+{
+  "id": "mcp-osp_marketing_tools",
+  "name": "Osp Marketing Tools",
+  "publisher": "open-strategy-partners",
+  "logo_url": "https://github.com/open-strategy-partners.png?size=40&w=25&q=25",
+  "description": "A Model Context Protocol (MCP) server that empowers LLMs to use some of Open Srategy Partners' co...",
+  "icon": "cpu",
+  "color": "blue",
+  "category": "Developer Tools",
+  "official": true,
+  "version": "2025.6.16",
+  "docs_url": "https://github.com/open-strategy-partners/osp_marketing_tools",
+  "runtime": "docker",
+  "transport": "stdio",
+  "docker_image": "mcp/osp_marketing_tools",
+  "package": null,
+  "args": [],
+  "docker_args": [],
+  "container_port": 8000,
+  "auth_type": "none",
+  "auth_mode": "environment",
+  "user_config_schema": [],
+  "tools": [
+    "get_editing_codes",
+    "get_meta_guide",
+    "get_on_page_seo_guide",
+    "get_value_map_positioning_guide",
+    "get_writing_guide",
+    "health_check"
+  ],
+  "requirements": "No external credentials identified; tool-specific arguments or local runtime configuration may still be required."
+}

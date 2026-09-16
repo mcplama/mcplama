@@ -1,0 +1,41 @@
+{
+  "id": "mcp-dockerhub",
+  "name": "Dockerhub",
+  "publisher": "docker",
+  "logo_url": "https://github.com/docker.png?size=40&w=25&q=25",
+  "description": "Docker Hub official MCP server",
+  "icon": "box",
+  "color": "blue",
+  "category": "Developer Tools",
+  "official": true,
+  "version": "2026.6.24",
+  "docs_url": "https://github.com/docker/hub-mcp",
+  "runtime": "docker",
+  "transport": "stdio",
+  "docker_image": "mcp/dockerhub",
+  "package": null,
+  "args": [],
+  "docker_args": [
+    "--username={{dockerhub.username}}"
+  ],
+  "container_port": 8000,
+  "auth_type": "none",
+  "auth_mode": "environment",
+  "user_config_schema": [],
+  "tools": [
+    "checkRepository",
+    "checkRepositoryTag",
+    "createRepository",
+    "dockerHardenedImages",
+    "getPersonalNamespace",
+    "getRepositoryInfo",
+    "getRepositoryTag",
+    "listAllNamespacesMemberOf",
+    "listNamespaces",
+    "listRepositoriesByNamespace",
+    "listRepositoryTags",
+    "search",
+    "updateRepositoryInfo"
+  ],
+  "requirements": "No external credentials identified; tool-specific arguments or local runtime configuration may still be required."
+}

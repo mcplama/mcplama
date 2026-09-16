@@ -1,0 +1,44 @@
+{
+  "id": "mcp-hyperbrowser",
+  "name": "Hyperbrowser",
+  "publisher": "hyperbrowserai",
+  "logo_url": "https://github.com/hyperbrowserai.png?size=40&w=25&q=25",
+  "description": "A MCP server implementation for hyperbrowser",
+  "icon": "monitor",
+  "color": "purple",
+  "category": "Search & Web Data",
+  "official": true,
+  "version": "2025.6.16",
+  "docs_url": "https://github.com/hyperbrowserai/mcp",
+  "runtime": "docker",
+  "transport": "stdio",
+  "docker_image": "mcp/hyperbrowser",
+  "package": null,
+  "args": [],
+  "docker_args": [],
+  "container_port": 8000,
+  "auth_type": "api_token",
+  "auth_mode": "shared",
+  "user_config_schema": [
+    {
+      "key": "HYPERBROWSER_API_KEY",
+      "label": "Hyperbrowser API key",
+      "type": "secret",
+      "required": true,
+      "placeholder": "Enter value"
+    }
+  ],
+  "tools": [
+    "browser_use_agent",
+    "claude_computer_use_agent",
+    "crawl_webpages",
+    "create_profile",
+    "delete_profile",
+    "extract_structured_data",
+    "list_profiles",
+    "openai_computer_use_agent",
+    "scrape_webpage",
+    "search_with_bing"
+  ],
+  "requirements": "Configure: Hyperbrowser API key"
+}

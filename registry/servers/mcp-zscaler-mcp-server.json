@@ -1,0 +1,51 @@
+{
+  "id": "mcp-zscaler-mcp-server",
+  "name": "Zscaler Mcp Server",
+  "publisher": "zscaler",
+  "logo_url": "https://github.com/zscaler.png?size=40&w=25&q=25",
+  "description": "Manage the Zscaler Zero Trust Exchange platform via 300+ tools across ZPA (private access), ZIA (...",
+  "icon": "server",
+  "color": "blue",
+  "category": "Security & Observability",
+  "official": true,
+  "version": "2026.6.24",
+  "docs_url": "",
+  "runtime": "docker",
+  "transport": "stdio",
+  "docker_image": "mcp/zscaler-mcp-server",
+  "package": null,
+  "args": [],
+  "docker_args": [],
+  "container_port": 8000,
+  "auth_type": "api_token",
+  "auth_mode": "shared",
+  "user_config_schema": [
+    {
+      "key": "ZSCALER_CLIENT_ID",
+      "label": "Zscaler OneAPI client ID",
+      "type": "secret",
+      "required": true
+    },
+    {
+      "key": "ZSCALER_CLIENT_SECRET",
+      "label": "Zscaler OneAPI client secret",
+      "type": "secret",
+      "required": true
+    },
+    {
+      "key": "ZSCALER_CUSTOMER_ID",
+      "label": "Zscaler customer ID",
+      "type": "text",
+      "required": true
+    },
+    {
+      "key": "ZSCALER_VANITY_DOMAIN",
+      "label": "Zscaler vanity domain",
+      "type": "text",
+      "required": true
+    }
+  ],
+  "tools": [],
+  "requirements": "Configure: Zscaler OneAPI client ID, client secret, customer ID, and vanity domain; verification required",
+  "verification_status": "candidate_unverified"
+}

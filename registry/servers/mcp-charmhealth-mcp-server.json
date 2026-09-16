@@ -1,0 +1,93 @@
+{
+  "id": "mcp-charmhealth-mcp-server",
+  "name": "Charmhealth Mcp Server",
+  "publisher": "CharmHealth",
+  "logo_url": "https://github.com/CharmHealth.png?size=40&w=25&q=25",
+  "description": "An MCP server for CharmHealth EHR that allows LLMs and MCP clients to interact with patient recor...",
+  "icon": "cpu",
+  "color": "blue",
+  "category": "AI & ML",
+  "official": true,
+  "version": "2026.6.24",
+  "docs_url": "https://github.com/CharmHealth/charm-mcp-server",
+  "runtime": "docker",
+  "transport": "stdio",
+  "docker_image": "mcp/charmhealth-mcp-server",
+  "package": null,
+  "args": [],
+  "docker_args": [],
+  "container_port": 8000,
+  "auth_type": "api_token",
+  "auth_mode": "shared",
+  "user_config_schema": [
+    {
+      "key": "CHARMHEALTH_BASE_URL",
+      "label": "CharmHealth base URL",
+      "type": "text",
+      "required": true,
+      "placeholder": "https://example.com"
+    },
+    {
+      "key": "CHARMHEALTH_API_KEY",
+      "label": "CharmHealth API key",
+      "type": "secret",
+      "required": true,
+      "placeholder": "Enter value"
+    },
+    {
+      "key": "CHARMHEALTH_REFRESH_TOKEN",
+      "label": "CharmHealth refresh token",
+      "type": "secret",
+      "required": true,
+      "placeholder": "Enter value"
+    },
+    {
+      "key": "CHARMHEALTH_CLIENT_ID",
+      "label": "CharmHealth client ID",
+      "type": "secret",
+      "required": true,
+      "placeholder": "Enter value"
+    },
+    {
+      "key": "CHARMHEALTH_CLIENT_SECRET",
+      "label": "CharmHealth client secret",
+      "type": "secret",
+      "required": true,
+      "placeholder": "Enter value"
+    },
+    {
+      "key": "CHARMHEALTH_REDIRECT_URI",
+      "label": "CharmHealth redirect URI",
+      "type": "text",
+      "required": true,
+      "placeholder": "https://example.com"
+    },
+    {
+      "key": "CHARMHEALTH_TOKEN_URL",
+      "label": "CharmHealth token URL",
+      "type": "text",
+      "required": true,
+      "placeholder": "https://example.com"
+    }
+  ],
+  "tools": [
+    "findPatients",
+    "getPracticeInfo",
+    "manageAppointments",
+    "manageEncounter",
+    "manageFax",
+    "manageMessages",
+    "managePatient",
+    "managePatientAllergies",
+    "managePatientDiagnoses",
+    "managePatientDrugs",
+    "managePatientFiles",
+    "managePatientLabs",
+    "managePatientNotes",
+    "managePatientRecalls",
+    "managePatientVitals",
+    "manageTasks",
+    "reviewPatientHistory"
+  ],
+  "requirements": "Configure: CharmHealth OAuth/API credentials"
+}

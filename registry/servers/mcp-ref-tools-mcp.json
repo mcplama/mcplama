@@ -1,0 +1,36 @@
+{
+  "id": "mcp-ref-tools-mcp",
+  "name": "Ref Tools Mcp",
+  "publisher": "ref-tools",
+  "logo_url": "https://github.com/ref-tools.png?size=40&w=25&q=25",
+  "description": "Ref powerful search tool connets your coding tools with documentation context. It includes an up-...",
+  "icon": "search",
+  "color": "blue",
+  "category": "Search & Web Data",
+  "official": true,
+  "version": "2026.5.7",
+  "docs_url": "https://github.com/ref-tools/ref-tools-mcp",
+  "runtime": "docker",
+  "transport": "stdio",
+  "docker_image": "mcp/ref-tools-mcp",
+  "package": null,
+  "args": [],
+  "docker_args": [],
+  "container_port": 8000,
+  "auth_type": "api_token",
+  "auth_mode": "shared",
+  "user_config_schema": [
+    {
+      "key": "REF_API_KEY",
+      "label": "Ref API key",
+      "type": "secret",
+      "required": true,
+      "placeholder": "Enter value"
+    }
+  ],
+  "tools": [
+    "ref_read_url",
+    "ref_search_documentation"
+  ],
+  "requirements": "Configure: Ref API key"
+}

@@ -1,0 +1,56 @@
+# Dev tools
+tools/
+
+# Docs / marketing (not used by the build)
+docs/
+marketing/
+README.md
+SECURITY_REPORT.md
+
+# Dependencies (reinstalled inside Docker)
+node_modules/
+frontend/node_modules/
+
+# Build artifacts
+frontend/dist/
+dist/
+dist-ssr/
+build/
+__pycache__/
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+.venv/
+venv/
+*.sqlite3
+*.sqlite
+*.db
+*.log
+
+# Local certificates and private keys
+deploy/lan/certs/
+*.key
+*.crt
+*.pem
+
+# Dev/test files
+**/*.test.js
+**/*.spec.py
+tests/
+.pytest_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+# Git
+.git/
+.gitignore
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# Env files (secrets should be passed as env vars)
+.env
+.env.*

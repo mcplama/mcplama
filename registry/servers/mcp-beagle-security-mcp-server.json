@@ -1,0 +1,51 @@
+{
+  "id": "mcp-beagle-security-mcp-server",
+  "name": "Beagle Security Mcp Server",
+  "publisher": "beaglesecurity",
+  "logo_url": "https://github.com/beaglesecurity.png?size=40&w=25&q=25",
+  "description": "Connects with the Beagle Security backend using a user token to manage applications, run automate...",
+  "icon": "lock",
+  "color": "red",
+  "category": "Security & Observability",
+  "official": true,
+  "version": "2025.7.9",
+  "docs_url": "https://github.com/beaglesecurity/beagle-security-mcp-server",
+  "runtime": "docker",
+  "transport": "stdio",
+  "docker_image": "mcp/beagle-security-mcp-server",
+  "package": null,
+  "args": [],
+  "docker_args": [],
+  "container_port": 8000,
+  "auth_type": "api_token",
+  "auth_mode": "shared",
+  "user_config_schema": [
+    {
+      "key": "BEAGLE_SECURITY_API_TOKEN",
+      "label": "Beagle Security API token",
+      "type": "secret",
+      "required": true,
+      "placeholder": "Enter value"
+    }
+  ],
+  "tools": [
+    "beagle_create_application",
+    "beagle_create_project",
+    "beagle_delete_application",
+    "beagle_delete_project",
+    "beagle_get_application",
+    "beagle_get_domain_signature",
+    "beagle_get_test_result",
+    "beagle_get_test_status",
+    "beagle_list_applications",
+    "beagle_list_projects",
+    "beagle_list_running_tests",
+    "beagle_list_test_sessions",
+    "beagle_modify_application",
+    "beagle_modify_project",
+    "beagle_start_test",
+    "beagle_stop_test",
+    "beagle_verify_domain"
+  ],
+  "requirements": "Configure: Beagle access and application tokens may be required by selected tools"
+}

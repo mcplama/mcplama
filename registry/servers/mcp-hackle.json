@@ -1,0 +1,33 @@
+{
+  "id": "mcp-hackle",
+  "name": "Hackle",
+  "publisher": "hackle-io",
+  "logo_url": "https://github.com/hackle-io.png?size=40&w=25&q=25",
+  "description": "Model Context Protocol server for Hackle",
+  "icon": "cpu",
+  "color": "blue",
+  "category": "Security & Observability",
+  "official": true,
+  "version": "2026.6.24",
+  "docs_url": "https://github.com/hackle-io/hackle-mcp",
+  "runtime": "docker",
+  "transport": "stdio",
+  "docker_image": "mcp/hackle",
+  "package": null,
+  "args": [],
+  "docker_args": [],
+  "container_port": 8000,
+  "auth_type": "api_token",
+  "auth_mode": "shared",
+  "user_config_schema": [
+    {
+      "key": "API_KEY",
+      "label": "Hackle API key",
+      "type": "secret",
+      "required": true,
+      "placeholder": "Enter value"
+    }
+  ],
+  "tools": [],
+  "requirements": "Configure: Hackle API key"
+}

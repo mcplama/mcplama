@@ -1,0 +1,28 @@
+{
+  "id": "mcp-time",
+  "name": "Time",
+  "publisher": "modelcontextprotocol",
+  "logo_url": "https://github.com/modelcontextprotocol.png?size=40&w=25&q=25",
+  "description": "Time and timezone conversion capabilities",
+  "icon": "clock",
+  "color": "blue",
+  "category": "General Tools",
+  "official": true,
+  "version": "2025.6.17",
+  "docs_url": "https://github.com/modelcontextprotocol/servers",
+  "runtime": "docker",
+  "transport": "stdio",
+  "docker_image": "mcp/time",
+  "package": null,
+  "args": [],
+  "docker_args": [],
+  "container_port": 8000,
+  "auth_type": "none",
+  "auth_mode": "environment",
+  "user_config_schema": [],
+  "tools": [
+    "convert_time",
+    "get_current_time"
+  ],
+  "requirements": "No external credentials identified; tool-specific arguments or local runtime configuration may still be required."
+}

@@ -1,0 +1,30 @@
+{
+  "id": "mcp-hackernews-mcp",
+  "name": "Hackernews Mcp",
+  "publisher": "AayushBahukhandi",
+  "logo_url": "https://github.com/AayushBahukhandi.png?size=40&w=25&q=25",
+  "description": "A Model Context Protocol (MCP) server that provides access to Hacker News stories, comments, and ...",
+  "icon": "rss",
+  "color": "blue",
+  "category": "Search & Web Data",
+  "official": true,
+  "version": "2025.9.17",
+  "docs_url": "https://github.com/AayushBahukhandi/hackernews-mcp",
+  "runtime": "docker",
+  "transport": "stdio",
+  "docker_image": "mcp/hackernews-mcp",
+  "package": null,
+  "args": [],
+  "docker_args": [],
+  "container_port": 8000,
+  "auth_type": "none",
+  "auth_mode": "environment",
+  "user_config_schema": [],
+  "tools": [
+    "get_stories",
+    "get_story_info",
+    "get_user_info",
+    "search_stories"
+  ],
+  "requirements": "No external credentials identified; tool-specific arguments or local runtime configuration may still be required."
+}

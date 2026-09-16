@@ -1,0 +1,15 @@
+MCPlama includes third-party dependencies that remain licensed under their
+respective terms. This project does not relicense those dependencies.
+
+Frontend dependency license metadata is recorded in:
+
+  ui/package-lock.json
+
+The backend dependencies are listed in:
+
+  server/requirements.txt
+
+When redistributing a built image, retain the relevant upstream license and
+notice files supplied by the dependency packages. Operators and distributors
+should regenerate a complete dependency inventory for the exact release they
+ship.

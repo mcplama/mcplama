@@ -1,0 +1,182 @@
+/* Copyright (c) 2026 MCPlama <dev@mcplama.com> */
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@100..900&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+*, *::before, *::after { box-sizing: border-box; }
+
+/* ─── Light mode (default) ─── */
+:root {
+  --bg:            #f9fafb;
+  --surface:       #ffffff;
+  --card:          #ffffff;
+  --card2:         #f9fafb;
+  --border:        #e4e7ec;
+  --border2:       #d0d5dd;
+  --accent:        #465fff;
+  --accent-hover:  #3641f5;
+  --accent-solid:  #7592ff;
+  --accent-grad:   linear-gradient(102deg, #7592ff 8%, #465fff 96%);
+  --on-accent:     #ffffff;
+  --t1:            #101828;
+  --t2:            #344054;
+  --t3:            #667085;
+  --ok:            #12b76a;
+  --warn:          #f79009;
+  --danger:        #f04438;
+  --info:          #0ba5ec;
+  --radius:        0.75rem;
+  --shadow-xs:     0px 1px 2px 0px rgba(16,24,40,0.05);
+  --shadow-sm:     0px 1px 3px 0px rgba(16,24,40,0.1), 0px 1px 2px 0px rgba(16,24,40,0.06);
+  --shadow-card:   0px 4px 8px -2px rgba(16,24,40,0.1), 0px 2px 4px -2px rgba(16,24,40,0.06);
+  --shadow-md:     0px 12px 16px -4px rgba(16,24,40,0.08), 0px 4px 6px -2px rgba(16,24,40,0.03);
+}
+
+/* ─── Dark mode ─── */
+.dark {
+  --bg:            #111928;
+  --surface:       #1d2939;
+  --card:          #253141;
+  --card2:         #1d2939;
+  --border:        #253141;
+  --border2:       #344054;
+  --accent:        #7592ff;
+  --accent-hover:  #9cb9ff;
+  --accent-solid:  #465fff;
+  --accent-grad:   linear-gradient(102deg, #9cb9ff 8%, #7592ff 96%);
+  --on-accent:     #0c111d;
+  --t1:            #f9fafb;
+  --t2:            #d0d5dd;
+  --t3:            #98a2b3;
+  --ok:            #32d583;
+  --warn:          #fdb022;
+  --danger:        #f97066;
+  --info:          #36bffa;
+  --shadow-xs:     0px 1px 2px 0px rgba(0,0,0,0.20);
+  --shadow-sm:     0px 1px 3px 0px rgba(0,0,0,0.18), 0px 2px 6px 0px rgba(0,0,0,0.12);
+  --shadow-card:   0px 4px 12px 0px rgba(0,0,0,0.28);
+  --shadow-md:     0px 12px 16px -4px rgba(0,0,0,0.30), 0px 4px 6px -2px rgba(0,0,0,0.20);
+}
+
+html { font-size: 15px; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--t1);
+  font-family: 'Outfit', ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  letter-spacing: -0.01em;
+}
+
+.font-mono, code, pre, kbd, samp {
+  font-family: ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, Consolas, monospace !important;
+}
+
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: var(--border2); }
+
+input, select, textarea, button { outline: none; font-family: inherit; }
+a { text-decoration: none; color: inherit; }
+select option { background: var(--surface); color: var(--t1); }
+
+:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--accent) 60%, transparent);
+  outline-offset: 2px;
+}
+input:focus-visible, select:focus-visible, textarea:focus-visible { outline: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Animations */
+@keyframes fadeIn  { from { opacity: 0 } to { opacity: 1 } }
+@keyframes slideUp { from { opacity: 0; transform: translateY(8px) } to { opacity: 1; transform: translateY(0) } }
+@keyframes scaleIn { from { opacity: 0; transform: scale(0.97) } to { opacity: 1; transform: scale(1) } }
+@keyframes spin    { to { transform: rotate(360deg) } }
+@keyframes ping    { 0%,100% { transform: scale(1); opacity: 1 } 50% { transform: scale(1.4); opacity: .5 } }
+
+.animate-fade-in  { animation: fadeIn  0.15s ease; }
+.animate-slide-up { animation: slideUp 0.2s cubic-bezier(0.16,1,0.3,1); }
+.animate-scale-in { animation: scaleIn 0.15s cubic-bezier(0.16,1,0.3,1); }
+.animate-ping     { animation: ping 1.5s ease-in-out infinite; }
+.spin             { animation: spin 0.7s linear infinite; }
+
+@layer components {
+  /* ─── Sidebar menu utilities ─── */
+  .menu-item {
+    @apply relative flex items-center w-full gap-3 px-3 py-2 font-medium rounded-lg text-sm transition-colors duration-150;
+  }
+  .menu-item-active {
+    background-color: #ecf3ff;
+    color: #465fff;
+  }
+  .dark .menu-item-active {
+    background-color: rgba(70, 95, 255, 0.12);
+    color: #7592ff;
+  }
+  .menu-item-inactive {
+    color: #344054;
+  }
+  .menu-item-inactive:hover { background-color: #f2f4f7; }
+  .dark .menu-item-inactive { color: #d0d5dd; }
+  .dark .menu-item-inactive:hover { background-color: rgba(255,255,255,0.05); }
+
+  .menu-item-icon-active  { color: #465fff; }
+  .dark .menu-item-icon-active { color: #7592ff; }
+  .menu-item-icon-inactive { color: #667085; }
+  .dark .menu-item-icon-inactive { color: #98a2b3; }
+
+  /* ─── Tab bar ─── */
+  .tab-bar {
+    @apply flex gap-0 mb-0;
+    border-bottom: 1px solid var(--border);
+  }
+  .tab-btn {
+    @apply px-4 py-2.5 text-sm font-medium cursor-pointer bg-transparent border-none
+           border-b-2 border-transparent flex items-center gap-2 -mb-px
+           transition-all duration-150 whitespace-nowrap;
+    color: var(--t3);
+    font-family: inherit;
+  }
+  .tab-btn:hover  { color: var(--t2); }
+  .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
+  .tab-logo { @apply h-6 w-6 object-contain shrink-0; }
+
+  /* ─── Filter pills ─── */
+  .filter-btn {
+    @apply px-3 py-1 rounded-lg text-xs font-medium cursor-pointer
+           inline-flex items-center gap-1.5 transition-all duration-150 whitespace-nowrap;
+    background: var(--surface);
+    color: var(--t3);
+    border: 1px solid var(--border);
+    font-family: inherit;
+  }
+  .filter-btn:hover  { color: var(--t1); border-color: var(--border2); }
+  .filter-btn.active {
+    color: var(--accent);
+    font-weight: 600;
+    border-color: rgba(70,95,255,0.5);
+    background: color-mix(in srgb, var(--accent) 10%, transparent);
+  }
+
+  /* ─── Table row hover ─── */
+  .row-hover { @apply transition-colors duration-100; }
+  .row-hover:hover { background-color: #f9fafb; }
+  .dark .row-hover:hover { background-color: rgba(255,255,255,0.03); }
+
+  /* ─── No scrollbar ─── */
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+}
