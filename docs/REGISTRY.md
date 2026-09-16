@@ -1,7 +1,9 @@
 # Request an MCP server registry entry
 
-The MCPlama registry is the curated catalog shown in the dashboard. A registry
-entry describes an MCP server that MCPlama can install and run; it is not the
+The MCPlama registry is the curated catalog shown in the dashboard. The
+canonical catalog is maintained in the application repository's
+[`registry.json`](https://raw.githubusercontent.com/mcplama/mcplama/refs/heads/main/registry.json).
+A registry entry describes an MCP server that MCPlama can install and run; it is not the
 MCPlama application image itself. The application image is
 `mcplama/mcplama`.
 
@@ -33,14 +35,14 @@ with:
 5. The server's documentation URL and a list of representative tools.
 6. Any network, filesystem, OAuth, or other operational requirements.
 
-If you can make the change yourself, submit a pull request instead. Add a
-metadata file under `registry/servers/` and update `registry/_catalog.json`
-with the same entry. Keep the entry limited to declarative metadata; runtime
+If you can make the change yourself, submit a pull request to the application
+repository instead. Add the entry to `registry.json` using an existing entry
+as a template. Keep the entry limited to declarative metadata; runtime
 behavior belongs in the application code and requires separate review.
 
 ## Entry shape
 
-Use an existing file in `registry/servers/` as a template. At minimum, provide
+Use an existing entry in `registry.json` as a template. At minimum, provide
 these fields:
 
 ```json

@@ -46,18 +46,6 @@ docker build -t mcplama:local .
 For the hot-reload workflow, use [DEVELOPMENT.md](DEVELOPMENT.md) and
 `docker-compose.dev.yml` instead.
 
-## Publish a release
-
-```bash
-docker build -t mcplama/mcplama:1.0.0 .
-docker push mcplama/mcplama:1.0.0
-docker tag mcplama/mcplama:1.0.0 mcplama/mcplama:latest
-docker push mcplama/mcplama:latest
-```
-
-For multi-architecture images, use `docker buildx build --platform` and push
-the result to the registry.
-
 ## Runner image
 
 Stdio-based MCP servers use a separate wrapper image:

@@ -50,7 +50,7 @@ services:
       GATEWAY_URL: ${GATEWAY_URL:-http://localhost:8000}
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost:5173}
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:5173}
-      REGISTRY_URL: ${REGISTRY_URL:-https://raw.githubusercontent.com/mcplama/mcplama/refs/heads/main/registry/_catalog.json}
+      REGISTRY_URL: ${REGISTRY_URL:-https://raw.githubusercontent.com/mcplama/mcplama/refs/heads/main/registry.json}
       BROKER_URL: http://broker:9000
       BROKER_HOST: broker
       BROKER_TOKEN: ${BROKER_TOKEN:?BROKER_TOKEN must be set}

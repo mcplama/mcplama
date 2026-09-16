@@ -63,7 +63,7 @@ docker network connect mcplama mcplama 2>/dev/null || true
 
 export DATABASE_URL=${DATABASE_URL:-"postgresql+asyncpg://mcplama:${DB_PASSWORD}@localhost:5432/mcplama"}
 export GATEWAY_URL=${GATEWAY_URL:-"http://localhost:8080"}
-export REGISTRY_URL=${REGISTRY_URL:-"https://raw.githubusercontent.com/mcplama/mcplama/refs/heads/main/registry/_catalog.json"}
+export REGISTRY_URL=${REGISTRY_URL:-"https://raw.githubusercontent.com/mcplama/mcplama/refs/heads/main/registry.json"}
 # TLS is normally terminated by the administrator's reverse proxy. Keep the
 # bundled HTTP default usable for local/LAN installs, but make the cookie risk
 # explicit when the externally-visible gateway URL is not HTTPS.

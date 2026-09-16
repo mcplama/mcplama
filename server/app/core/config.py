@@ -22,7 +22,7 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24  # 24 hours
     TOKEN_ENCRYPTION_KEY: str = _DEF_ENC_KEY
     GATEWAY_URL: str = "http://localhost:8000"
-    REGISTRY_URL: str = "https://raw.githubusercontent.com/mcplama/mcplama/refs/heads/main/registry/_catalog.json"
+    REGISTRY_URL: str = "https://raw.githubusercontent.com/mcplama/mcplama/refs/heads/main/registry.json"
     FRONTEND_URL: str = "http://localhost:5173"   
     REGISTRY_LOCAL_PATH: str = "./registry"
     CORS_ORIGINS: str = "http://localhost:5173"
