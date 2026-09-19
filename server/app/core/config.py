@@ -1,29 +1,25 @@
 # Copyright (c) 2026 MCPlama <dev@mcplama.com>
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
-import logging
 import os
 from pydantic_settings import BaseSettings
 from typing import ClassVar, List
 
-_DEF_SECRET = "dev-secret-change-in-production"
-_DEF_ENC_KEY = "dev-encryption-key-32-chars-min!"
-
-
 class Settings(BaseSettings):
     APP_NAME: str = "MCPlama"
     VERSION: str = "1.0.0"
-    # Set ENVIRONMENT=production to make the default-secret check fatal instead
-    # of a warning.
     ENVIRONMENT: str = "development"
-    DATABASE_URL: str = "postgresql+asyncpg://mcplama:mcplama_secret@localhost:5432/mcplama"
-    SECRET_KEY: str = _DEF_SECRET
+
+    DATABASE_URL: str
+    SECRET_KEY: str
+    TOKEN_ENCRYPTION_KEY: str
+
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24  # 24 hours
-    TOKEN_ENCRYPTION_KEY: str = _DEF_ENC_KEY
+
     GATEWAY_URL: str = "http://localhost:8000"
     REGISTRY_URL: str = "https://raw.githubusercontent.com/mcplama/mcplama/refs/heads/main/registry.json"
-    FRONTEND_URL: str = "http://localhost:5173"   
+    FRONTEND_URL: str = "http://localhost:5173"
     REGISTRY_LOCAL_PATH: str = "./registry"
     CORS_ORIGINS: str = "http://localhost:5173"
     # Extra hostnames/IPs (besides localhost/127.0.0.1/private LAN addresses, which are
@@ -64,27 +60,3 @@ settings = Settings()
 # redirects to the wrong host entirely.
 if "FRONTEND_URL" not in os.environ:
     settings.FRONTEND_URL = settings.GATEWAY_URL
-
-_log = logging.getLogger(__name__)
-
-_insecure_defaults = []
-if settings.SECRET_KEY == _DEF_SECRET:
-    _insecure_defaults.append("SECRET_KEY")
-if settings.TOKEN_ENCRYPTION_KEY == _DEF_ENC_KEY:
-    _insecure_defaults.append("TOKEN_ENCRYPTION_KEY")
-
-if _insecure_defaults:
-    _names = ", ".join(_insecure_defaults)
-    if settings.ENVIRONMENT.lower() in ("production", "prod"):
-        # Refuse to boot rather than sign JWTs and encrypt stored credentials
-        # with a value that is published in the source tree. A log warning is
-        # not a control — nobody reads startup logs.
-        raise RuntimeError(
-            f"Refusing to start: {_names} still set to the default dev value(s) "
-            f"while ENVIRONMENT=production. Generate secrets and set them as env vars "
-            f"(e.g. `python -c \"import secrets; print(secrets.token_urlsafe(48))\"`)."
-        )
-    _log.warning(
-        f"⚠️  {_names} using default dev value(s) — set them as env vars before "
-        f"production use (startup will hard-fail when ENVIRONMENT=production)"
-    )

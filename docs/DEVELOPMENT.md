@@ -9,7 +9,7 @@ UI runs natively with Vite for fast reloads.
 
 - Docker
 - Docker Compose
-- Node.js 20+ and npm
+- Node.js 20.19+ (or 22.12+) and npm
 
 ## Start the contributor stack
 

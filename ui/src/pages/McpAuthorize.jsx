@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { Zap, Eye, EyeOff, AlertCircle, CheckCircle, Loader2, ExternalLink } from 'lucide-react'
+import { Eye, EyeOff, AlertCircle, CheckCircle, Loader2, ExternalLink } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 
 const inputCls = 'w-full px-3.5 py-2.5 rounded-xl bg-bg border border-border text-t1 text-sm outline-none focus:border-accent transition-colors'
@@ -65,9 +65,9 @@ export default function McpAuthorize() {
   }, [authLoading, user, pending])
 
   const submit = async e => {
-    e.preventDefault(); setLoading(true); setMessage('')
+    e.preventDefault(); setLoading(true); setStatus('idle'); setMessage('')
     try { await login(form.email, form.password) }
-    catch (e) { setMessage(e.response?.data?.detail || 'Invalid email or password'); setLoading(false) }
+    catch (e) { setMessage(e.response?.data?.detail || 'Invalid email or password'); setStatus('error'); setLoading(false) }
   }
 
   if (!pending) return <div className="min-h-screen bg-bg flex items-center justify-center"><p className="text-t3">Invalid authorization request.</p></div>
@@ -103,7 +103,7 @@ export default function McpAuthorize() {
     <div className="min-h-screen bg-bg flex items-center justify-center p-6">
       <div className="w-full max-w-[400px]">
         <div className="flex items-center gap-2.5 mb-8 justify-center">
-          <div className="w-9 h-9 rounded-xl bg-accent flex items-center justify-center shrink-0"><Zap size={18} color="white" strokeWidth={2.5} /></div>
+          <img src="/icons/mcplama-icon-64.png" alt="Mcplama" className="w-9 h-9 rounded-xl shrink-0" />
           <div><p className="text-base font-bold text-t1">Mcplama</p><p className="text-[11px] text-t3">MCP Gateway</p></div>
         </div>
 

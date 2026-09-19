@@ -213,11 +213,11 @@ function OAuthPanel({ server, onRefresh }) {
 }
 
 const CLIENT_TABS = [
-  { id: 'claude',      label: 'Claude Desktop', logo: 'https://cdn.simpleicons.org/claude' },
-  { id: 'claude-code', label: 'Claude Code',    logo: 'https://cdn.simpleicons.org/claude' },
-  { id: 'codex',       label: 'Codex',          logo: 'https://cdn.simpleicons.org/openai' },
-  { id: 'vscode',      label: 'VS Code',        logo: 'https://cdn.simpleicons.org/visualstudiocode' },
-  { id: 'cursor',      label: 'Cursor',         logo: 'https://cdn.simpleicons.org/cursor' },
+  { id: 'claude',      label: 'Claude Desktop', logo: '/icons/claude.svg' },
+  { id: 'claude-code', label: 'Claude Code',    logo: '/icons/claude-code.svg' },
+  { id: 'codex',       label: 'Codex',          logo: '/icons/codex-dark.svg' },
+  { id: 'vscode',      label: 'VS Code',        logo: '/icons/visual-studio-code.svg' },
+  { id: 'cursor',      label: 'Cursor',         logo: '/icons/cursor.svg' },
   { id: 'api',         label: 'API / curl',     icon: Globe },
   { id: 'other',       label: 'Other',          icon: Globe },
 ]
