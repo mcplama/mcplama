@@ -19,6 +19,9 @@ Copy `.env.example` to `.env` and fill in the required values. Then run:
 docker compose -f docker-compose.dev.yml up postgres broker server
 ```
 
+Docker Compose creates the `mcplama-dev` network declared in the compose file;
+there is no separate network setup step for local development.
+
 The server is available at `http://localhost:8000`. The broker is internal-only
 and is the only development service with Docker socket access.
 
