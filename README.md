@@ -61,6 +61,7 @@ the repository or build the application locally.
 ```bash
 # The image contains the UI, API, broker, registry, Nginx, and PostgreSQL.
 docker pull mcplama/mcplama:latest
+docker network inspect mcplama >/dev/null 2>&1 || docker network create mcplama
 docker run -d --name mcplama \
   -p 8080:8080 \
   -v mcplama-data:/var/lib/postgresql \
