@@ -1,0 +1,188 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1720" height="1080" viewBox="0 0 1720 1080" role="img" aria-labelledby="title desc">
+  <title id="title">MCPlama detailed architecture</title>
+  <desc id="desc">AI clients and operators connect to the MCPlama backend. The backend authenticates and authorizes requests, injects credentials, records audit events, and proxies MCP traffic. PostgreSQL stores application state. The backend reaches remote MCP servers directly or uses an authenticated broker to run containerized MCP servers. Only the broker accesses the Docker socket; runner containers do not.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0b1020"/>
+      <stop offset="1" stop-color="#111a31"/>
+    </linearGradient>
+    <linearGradient id="violet" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#603df0"/>
+      <stop offset="1" stop-color="#3925ad"/>
+    </linearGradient>
+    <marker id="arrowBlue" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0 0L10 5L0 10Z" fill="#65a9ff"/>
+    </marker>
+    <marker id="arrowViolet" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0 0L10 5L0 10Z" fill="#a58bff"/>
+    </marker>
+    <marker id="arrowTeal" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0 0L10 5L0 10Z" fill="#41d6c3"/>
+    </marker>
+    <style>
+      text { font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+      .title { fill:#f4f6ff; font-size:34px; font-weight:750; }
+      .subtitle { fill:#a9b6d5; font-size:16px; }
+      .section { fill:#bdc9e6; font-size:13px; font-weight:750; letter-spacing:2px; }
+      .heading { fill:#f5f7ff; font-size:19px; font-weight:700; }
+      .body { fill:#c1cbe2; font-size:14px; }
+      .small { fill:#aab7d5; font-size:12px; }
+      .tiny { fill:#9aabc9; font-size:11px; }
+      .card { fill:#141e35; stroke:#2a3a5f; stroke-width:1.5; }
+      .soft { fill:#10192d; stroke:#29395c; stroke-width:1.3; }
+      .chip { fill:#1a2743; stroke:#344a74; stroke-width:1; }
+    </style>
+  </defs>
+
+  <rect width="1720" height="1080" fill="url(#bg)"/>
+  <text x="54" y="58" class="title">MCPlama architecture</text>
+  <text x="56" y="88" class="subtitle">Request controls, persistent state, and the isolated MCP runtime path</text>
+
+  <!-- External callers -->
+  <text x="54" y="145" class="section">CALLERS</text>
+  <rect x="48" y="164" width="300" height="634" rx="20" class="soft"/>
+  <rect x="70" y="188" width="256" height="242" rx="15" class="card"/>
+  <circle cx="101" cy="222" r="16" fill="#253a69"/>
+  <path d="M94 222h14M101 215v14" stroke="#83a9ff" stroke-width="2" stroke-linecap="round"/>
+  <text x="128" y="228" class="heading">AI clients</text>
+  <text x="92" y="270" class="body">Claude Desktop · Cursor</text>
+  <text x="92" y="294" class="body">VS Code · other MCP clients</text>
+  <rect x="91" y="322" width="212" height="70" rx="10" class="chip"/>
+  <text x="107" y="349" class="small">POST /connect/{token}</text>
+  <text x="107" y="372" class="tiny">Connection token is the credential</text>
+
+  <rect x="70" y="454" width="256" height="268" rx="15" class="card"/>
+  <circle cx="101" cy="488" r="16" fill="#253a69"/>
+  <path d="M92 487h18M95 482h12M95 492h12" stroke="#83a9ff" stroke-width="2" stroke-linecap="round"/>
+  <text x="128" y="494" class="heading">Operator / member</text>
+  <text x="92" y="536" class="body">Web browser</text>
+  <text x="92" y="560" class="small">Dashboard · setup · OAuth</text>
+  <text x="92" y="580" class="tiny">React UI via Nginx (bundled) / Vite (dev)</text>
+  <rect x="91" y="592" width="212" height="74" rx="10" class="chip"/>
+  <text x="107" y="619" class="small">HTTPS / API requests</text>
+  <text x="107" y="642" class="tiny">/api/v1/* and OAuth routes</text>
+
+  <!-- Backend -->
+  <text x="400" y="145" class="section">MCPLAMA GATEWAY</text>
+  <rect x="390" y="164" width="620" height="634" rx="20" fill="#111a31" stroke="#735df5" stroke-width="2"/>
+  <rect x="390" y="164" width="620" height="68" rx="20" fill="url(#violet)"/>
+  <path d="M390 212h620v20H390z" fill="url(#violet)"/>
+  <text x="420" y="204" class="heading">Backend API · OAuth · /connect proxy</text>
+  <rect x="824" y="181" width="159" height="32" rx="16" fill="#2b2379" stroke="#9e8cff"/>
+  <text x="844" y="202" fill="#eeeaff" font-size="12" font-weight="700">NO DOCKER SOCKET</text>
+  <text x="420" y="262" class="small">For each /connect request, the backend:</text>
+
+  <circle cx="438" cy="304" r="14" fill="#25365a" stroke="#65a9ff"/>
+  <text x="434" y="309" fill="#eaf2ff" font-size="12" font-weight="700">1</text>
+  <text x="466" y="309" class="body">Resolves token → user and MCP server</text>
+  <circle cx="438" cy="355" r="14" fill="#25365a" stroke="#65a9ff"/>
+  <text x="434" y="360" fill="#eaf2ff" font-size="12" font-weight="700">2</text>
+  <text x="466" y="360" class="body">Validates Origin and screens remote URLs</text>
+  <circle cx="438" cy="406" r="14" fill="#25365a" stroke="#65a9ff"/>
+  <text x="434" y="411" fill="#eaf2ff" font-size="12" font-weight="700">3</text>
+  <text x="466" y="411" class="body">Checks access grants and policies (fail closed)</text>
+  <circle cx="438" cy="457" r="14" fill="#25365a" stroke="#65a9ff"/>
+  <text x="434" y="462" fill="#eaf2ff" font-size="12" font-weight="700">4</text>
+  <text x="466" y="462" class="body">Injects shared, per-user, or OAuth credentials</text>
+  <circle cx="438" cy="508" r="14" fill="#25365a" stroke="#65a9ff"/>
+  <text x="434" y="513" fill="#eaf2ff" font-size="12" font-weight="700">5</text>
+  <text x="466" y="513" class="body">Writes audit event and rate-limit ledger row</text>
+  <circle cx="438" cy="559" r="14" fill="#25365a" stroke="#65a9ff"/>
+  <text x="434" y="564" fill="#eaf2ff" font-size="12" font-weight="700">6</text>
+  <text x="466" y="564" class="body">Proxies JSON-RPC to the selected MCP server</text>
+
+  <rect x="420" y="612" width="560" height="142" rx="14" class="card"/>
+  <text x="444" y="644" class="heading" font-size="17">Transparent MCP proxy</text>
+  <text x="444" y="673" class="small">Protocol messages pass through unchanged; auth, policy,</text>
+  <text x="444" y="695" class="small">credentials, and audit are applied around the protocol.</text>
+  <rect x="444" y="713" width="176" height="25" rx="12" fill="#173b49" stroke="#2e9c91"/>
+  <text x="461" y="730" fill="#91eee1" font-size="11" font-weight="700">PUBLIC HTTP ENTRY</text>
+
+  <!-- Data store -->
+  <rect x="390" y="844" width="620" height="166" rx="18" fill="#101d2b" stroke="#36b9aa" stroke-width="1.7"/>
+  <ellipse cx="445" cy="891" rx="25" ry="9" fill="#164d50" stroke="#4ed6c5" stroke-width="1.5"/>
+  <path d="M420 891v46c0 5 11 9 25 9s25-4 25-9v-46M420 914c0 5 11 9 25 9s25-4 25-9" fill="none" stroke="#4ed6c5" stroke-width="1.5"/>
+  <text x="486" y="889" class="heading">PostgreSQL · persistent state</text>
+  <text x="486" y="918" class="small">Users · servers · policies · connections · encrypted credentials</text>
+  <text x="486" y="942" class="small">Audit logs · configuration · OAuth registrations</text>
+  <text x="420" y="982" class="tiny">Backend reads and writes through the database connection.</text>
+
+  <!-- MCP targets and runtime boundary -->
+  <text x="1050" y="145" class="section">MCP SERVERS</text>
+  <rect x="1040" y="164" width="632" height="136" rx="18" class="soft"/>
+  <text x="1070" y="198" class="heading">Remote HTTP MCP server</text>
+  <text x="1070" y="226" class="small">Reached directly by the backend; DNS/IP is screened at request time.</text>
+  <rect x="1443" y="245" width="197" height="31" rx="15" fill="#192a45" stroke="#5378b7"/>
+  <text x="1461" y="266" fill="#bdd7ff" font-size="11" font-weight="700">OUTSIDE DOCKER RUNTIME</text>
+
+  <rect x="1035" y="334" width="637" height="676" rx="22" fill="#101829" stroke="#e1a95d" stroke-width="1.5" stroke-dasharray="9 7"/>
+  <rect x="1061" y="351" width="222" height="28" rx="14" fill="#3d3020" stroke="#ae8244"/>
+  <text x="1079" y="370" fill="#f5d39c" font-size="11" font-weight="750" letter-spacing="1.2">PRIVATE DOCKER RUNTIME</text>
+
+  <rect x="1065" y="402" width="252" height="164" rx="15" class="card"/>
+  <text x="1090" y="438" class="heading">Broker</text>
+  <text x="1090" y="468" class="small">Authenticated internal API</text>
+  <text x="1090" y="491" class="small">Typed start / stop requests</text>
+  <text x="1090" y="514" class="small">Applies container resource limits</text>
+  <rect x="1090" y="531" width="201" height="23" rx="11" fill="#492d27" stroke="#bd7158"/>
+  <text x="1106" y="547" fill="#ffc0a7" font-size="10" font-weight="700">ONLY PROCESS WITH DOCKER ACCESS</text>
+
+  <rect x="1370" y="402" width="262" height="164" rx="15" class="card"/>
+  <text x="1395" y="438" class="heading">Docker daemon</text>
+  <text x="1395" y="469" class="small">Receives Docker API calls</text>
+  <text x="1395" y="493" class="small">from the broker over the socket.</text>
+  <text x="1395" y="530" class="tiny">Not reachable from the backend API.</text>
+
+  <rect x="1065" y="616" width="252" height="266" rx="15" class="card"/>
+  <text x="1090" y="652" class="heading">HTTP MCP containers</text>
+  <text x="1090" y="684" class="small">Broker starts the server image.</text>
+  <text x="1090" y="708" class="small">Backend proxies over the private</text>
+  <text x="1090" y="732" class="small">mcplama Docker network.</text>
+  <rect x="1090" y="767" width="199" height="35" rx="9" class="chip"/>
+  <text x="1107" y="790" fill="#c7d7f3" font-size="12">HTTP endpoint (usually /mcp)</text>
+  <text x="1090" y="841" class="tiny">Server containers receive no host socket.</text>
+
+  <rect x="1340" y="616" width="292" height="266" rx="15" class="card"/>
+  <text x="1365" y="652" class="heading">Runner containers</text>
+  <text x="1365" y="684" class="small">No Docker socket.</text>
+  <text x="1365" y="708" class="small">npx / uvx packages run through</text>
+  <text x="1365" y="732" class="small">supergateway; stdio images use it</text>
+  <text x="1365" y="756" class="small">as an HTTP-to-stdio bridge.</text>
+  <rect x="1365" y="780" width="241" height="48" rx="9" class="chip"/>
+  <text x="1380" y="800" class="tiny">Runner ⇄ broker TCP relay ⇄ stdio MCP</text>
+  <text x="1380" y="818" class="tiny">Broker owns docker run -i and the process.</text>
+  <text x="1365" y="856" class="tiny">Runner connects to the broker relay.</text>
+
+  <text x="1065" y="929" class="small">Bundled image: backend, broker, runner, and PostgreSQL ship together.</text>
+  <text x="1065" y="953" class="small">Contributor stack: backend, broker, and PostgreSQL are separate services.</text>
+
+  <!-- Request and control connections -->
+  <path d="M348 292H390" fill="none" stroke="#65a9ff" stroke-width="3" marker-end="url(#arrowBlue)"/>
+  <text x="349" y="279" class="tiny">MCP</text>
+  <path d="M348 540H390" fill="none" stroke="#a58bff" stroke-width="3" marker-end="url(#arrowViolet)"/>
+  <text x="351" y="527" class="tiny">HTTPS</text>
+  <path d="M1010 226H1040" fill="none" stroke="#65a9ff" stroke-width="3" marker-end="url(#arrowBlue)"/>
+  <text x="1008" y="211" class="tiny">HTTP proxy</text>
+  <path d="M1010 481H1065" fill="none" stroke="#a58bff" stroke-width="3" marker-end="url(#arrowViolet)"/>
+  <text x="1005" y="465" class="tiny">BROKER_TOKEN</text>
+  <path d="M1317 477H1370" fill="none" stroke="#a58bff" stroke-width="3" marker-end="url(#arrowViolet)"/>
+  <text x="1318" y="461" class="tiny">Docker API</text>
+  <path d="M1010 711H1065" fill="none" stroke="#65a9ff" stroke-width="3" marker-end="url(#arrowBlue)"/>
+  <text x="1000" y="696" class="tiny">private HTTP</text>
+  <path d="M1010 755H1025V900H1486V882" fill="none" stroke="#65a9ff" stroke-width="2.5" stroke-dasharray="7 5" marker-end="url(#arrowBlue)"/>
+  <text x="1048" y="894" class="tiny">backend → runner HTTP (private network)</text>
+  <path d="M700 798V844" fill="none" stroke="#41d6c3" stroke-width="3" marker-start="url(#arrowTeal)" marker-end="url(#arrowTeal)"/>
+  <path d="M1400 566V588H1190V616" fill="none" stroke="#a58bff" stroke-width="2.3" marker-end="url(#arrowViolet)"/>
+  <path d="M1595 566V616" fill="none" stroke="#a58bff" stroke-width="2.3" marker-end="url(#arrowViolet)"/>
+
+  <!-- Legend -->
+  <path d="M54 1040h42" stroke="#65a9ff" stroke-width="3" marker-end="url(#arrowBlue)"/>
+  <text x="107" y="1045" class="small">MCP / HTTP data path</text>
+  <path d="M310 1040h42" stroke="#a58bff" stroke-width="3" marker-end="url(#arrowViolet)"/>
+  <text x="363" y="1045" class="small">Internal control path</text>
+  <path d="M570 1040h42" stroke="#41d6c3" stroke-width="3" marker-start="url(#arrowTeal)" marker-end="url(#arrowTeal)"/>
+  <text x="623" y="1045" class="small">Persistent state</text>
+  <rect x="810" y="1028" width="44" height="23" rx="5" fill="none" stroke="#e1a95d" stroke-width="1.5" stroke-dasharray="6 4"/>
+  <text x="866" y="1045" class="small">Docker runtime trust boundary</text>
+  <text x="1390" y="1045" class="tiny">MCPlama · detailed system view</text>
+</svg>

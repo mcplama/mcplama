@@ -7,21 +7,23 @@ concerns.
 
 ## Architecture at a glance
 
-```text
-AI clients ──HTTP/MCP──> Gateway API ──> policy + credentials + audit
-                              │
-                              ├──> remote MCP servers
-                              └──> typed broker ──> isolated MCP containers
-
-Operators ──> React dashboard ──> Gateway API
-Catalog    ──> registry metadata ──> installable server definitions
-```
+![Detailed MCPlama architecture showing clients, gateway request checks, PostgreSQL, remote MCP servers, broker, Docker runtime, and isolated runner containers.](docs/static/img/mcplama-architecture-detailed.svg)
 
 The gateway does not talk to Docker directly. The broker is the only component
 with Docker socket access in the recommended multi-container deployment, and
 the runner image never receives that socket. This boundary is documented in
 [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) and recorded as
 [`ADR-0001`](adr/0001-process-boundary-and-broker.md).
+
+## Screenshots
+
+### Admin dashboard
+
+![MCPlama admin dashboard with gateway activity, server status, and quick actions.](docs/static/img/mcplama-dash.png)
+
+### Member portal
+
+![MCPlama member portal showing available MCP servers and connection status.](docs/static/img/mcplama-member-redacted.png)
 
 ## Documentation
 
@@ -107,6 +109,8 @@ access, so compromising it cannot escalate to the host. See
 3. Click the server → **Authorization tab** — follow setup steps, paste credentials, click Authorize
 4. Go to **Connect tab** — create a connection token
 5. Copy the Claude Desktop config snippet — paste into `claude_desktop_config.json`
+
+![Animated walkthrough of adding an MCP server to MCPlama](docs/static/img/overview.gif)
 
 ## Connection URL
 

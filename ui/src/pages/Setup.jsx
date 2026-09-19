@@ -84,6 +84,8 @@ export default function Setup() {
   const [error, setError]     = useState('')
   const [loading, setLoading] = useState(false)
   const [checking, setChecking] = useState(true)
+  const [termsInfo, setTermsInfo] = useState(null)
+  const [termsAccepted, setTermsAccepted] = useState(false)
   const { login, user } = useAuth()
   const { markSetupDone } = useSetup()
   const navigate = useNavigate()
@@ -91,8 +93,11 @@ export default function Setup() {
   useEffect(() => {
     if (user) { navigate('/'); return }
     api.get('/auth/setup-status')
-      .then(r => { if (r.data.setup_done) navigate('/login') })
-      .catch(() => {})
+      .then(r => {
+        if (r.data.setup_done) navigate('/login')
+        setTermsInfo({ version: r.data.terms_version, url: r.data.terms_url })
+      })
+      .catch(() => setError("Could not load setup requirements. Refresh the page and try again."))
       .finally(() => setChecking(false))
   }, [])
 
@@ -121,6 +126,8 @@ export default function Setup() {
         smtp_from_email: form.smtp_from_email || null,
         smtp_from_name: form.smtp_from_name || null,
         smtp_use_tls: form.smtp_use_tls,
+        terms_accepted: termsAccepted,
+        terms_version: termsInfo?.version,
       })
       return true
     } catch(e) { setError(e.response?.data?.detail || 'Setup failed'); return false }
@@ -129,6 +136,7 @@ export default function Setup() {
 
   const next = async () => {
     if (step === 1 && (!form.name || !form.email || !form.password)) { setError('All fields are required'); return }
+    if (step === 1 && !termsAccepted) { setError('Please accept the Terms of Use to continue'); return }
     if (step === 3) { const ok = await createAccount(); if (!ok) return }
     setError(''); setStep(s => s + 1)
   }
@@ -193,6 +201,23 @@ export default function Setup() {
                 <Field label="Email address" type="email" value={form.email} onChange={set('email')} placeholder="admin@yourcompany.com" />
                 <Field label="Password" type="password" value={form.password} onChange={set('password')} placeholder="Min. 8 characters" hint="Use a strong password — this is the gateway admin account" />
                 <Field label="Confirm password" type="password" value={form.confirm} onChange={set('confirm')} placeholder="Repeat password" />
+                <div className="flex items-start gap-2.5 pt-1 text-sm text-t2">
+                  <input
+                    id="terms-accepted"
+                    type="checkbox"
+                    checked={termsAccepted}
+                    onChange={e => setTermsAccepted(e.target.checked)}
+                    disabled={!termsInfo?.url}
+                    className="mt-0.5 accent-accent"
+                  />
+                  <div>
+                    <label htmlFor="terms-accepted" className="cursor-pointer">I have read and agree to the </label>
+                    {termsInfo?.url
+                      ? <a href={termsInfo.url} target="_blank" rel="noopener noreferrer" className="text-accent underline">Terms of Use</a>
+                      : <span>Terms of Use</span>}
+                    {termsInfo?.version ? ` (version ${termsInfo.version})` : ''}.
+                  </div>
+                </div>
               </div>
             </div>
           )}

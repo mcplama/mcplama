@@ -31,3 +31,5 @@ class User(Base):
     # reset endpoint clears both columns as soon as it's consumed.
     reset_token_hash: Mapped[Optional[str]] = mapped_column(String(128), nullable=True)
     reset_token_expires: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    terms_accepted_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    terms_version: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)

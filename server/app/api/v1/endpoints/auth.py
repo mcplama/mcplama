@@ -17,6 +17,9 @@ from app.core.config import settings
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login", auto_error=False)
+TERMS_VERSION = "1.0"
+# Bump with the version shown in the root TERMS.md whenever those terms change.
+TERMS_URL = "https://raw.githubusercontent.com/mcplama/mcplama/refs/heads/main/TERMS.md"
 
 # ── In-memory rate limiter for auth endpoints ─────────────────────────────────
 _login_attempts: dict[str, list[float]] = defaultdict(list)
@@ -94,7 +97,11 @@ async def setup_status(db: AsyncSession = Depends(get_db)):
     result = await db.execute(
         select(func.count(User.id)).where(User.role == "admin")
     )
-    return {"setup_done": (result.scalar() or 0) > 0}
+    return {
+        "setup_done": (result.scalar() or 0) > 0,
+        "terms_version": TERMS_VERSION,
+        "terms_url": TERMS_URL,
+    }
 
 
 @router.post("/setup")
@@ -105,12 +112,16 @@ async def initial_setup(data: dict, db: AsyncSession = Depends(get_db)):
     )
     if (result.scalar() or 0) > 0:
         raise HTTPException(400, "Setup already completed")
+    if data.get("terms_accepted") is not True or data.get("terms_version") != TERMS_VERSION:
+        raise HTTPException(400, "You must accept the current Terms of Use to complete setup")
     user = User(
         name=data.get("name", "Admin"),
         email=data["email"],
         hashed_password=hash_password(data["password"]),
         role="admin",
         is_active=True,
+        terms_accepted_at=datetime.utcnow(),
+        terms_version=TERMS_VERSION,
     )
     db.add(user)
 

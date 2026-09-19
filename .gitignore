@@ -79,3 +79,6 @@ htmlcov/
 
 # Local rebuild helper (host-specific paths/ports, not part of the project)
 /rebuild-local.sh
+
+# Original member screenshot contains a credential; use the redacted README copy.
+/docs/static/img/mcplama-member.png

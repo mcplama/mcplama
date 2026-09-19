@@ -7,6 +7,8 @@ negotiated between the client and the upstream server exactly as if MCPlama were
 not there. Everything MCPlama adds — auth, policy, audit — happens in the layer
 *around* the protocol.
 
+![Detailed MCPlama architecture showing clients, gateway request checks, PostgreSQL, remote MCP servers, broker, Docker runtime, and isolated runner containers.](static/img/mcplama-architecture-detailed.svg)
+
 ## Processes
 
 | Process | Job | Docker socket? |
