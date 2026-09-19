@@ -26,6 +26,10 @@ docker run -d \
   mcplama/mcplama:latest
 ```
 
+At startup, MCPlama creates the Docker network named `mcplama` if it does not
+already exist, then joins that network. MCP server containers use it to reach
+the broker. You do not need to create the network manually.
+
 Put an HTTPS reverse proxy in front of port 8080 for public deployments. Set
 `GATEWAY_URL` to the externally reachable HTTPS origin used in MCP URLs and
 OAuth redirects.
