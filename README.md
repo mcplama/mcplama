@@ -7,7 +7,7 @@ concerns.
 
 ## Architecture at a glance
 
-[![MCPlama architecture overview showing clients, gateway, PostgreSQL, remote MCP servers, and the private Docker network.](docs/static/img/mcplama-architecture-overview.svg)](docs/static/img/mcplama-architecture-overview.svg)
+[![Detailed MCPlama architecture showing clients, gateway request checks, PostgreSQL, remote MCP servers, broker, Docker runtime, and isolated runner containers.](docs/static/img/mcplama-architecture-detailed.svg)](docs/static/img/mcplama-architecture-detailed.svg)
 
 The gateway does not talk to Docker directly. The broker is the only component
 with Docker socket access in the recommended multi-container deployment, and
