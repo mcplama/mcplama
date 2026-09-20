@@ -1,4 +1,4 @@
-# MCPlama
+<h1><img src="ui/public/icons/mcplama-icon-64.png" width="36" align="center" alt="MCPlama icon"> MCPlama</h1>
 
 Open-source MCP gateway for connecting AI clients to governed, self-hosted
 tools. MCPlama centralizes connection credentials, access policy, audit events,
