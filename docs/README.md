@@ -30,26 +30,17 @@ AI Client (Claude Desktop, Cursor)
 - **[Security policy](SECURITY.md)** — how to report vulnerabilities.
 - **[Security model](SECURITY-MODEL.md)** — trust boundaries, what's enforced, and the production checklist. **Read this before deploying.**
 - **[Contributor development](DEVELOPMENT.md)** — run the source with server + UI hot reload.
-- **[Docker image](DOCKER.md)** — use the published image or release a new image.
+- **[Install and run with Docker](DOCKER.md)** — installation options, recommended host specifications, persistent data, and MCP container resources.
 - **[Registry requests](REGISTRY.md)** — request or contribute an MCP server catalog entry.
 - **[API reference](API.md)** — REST API, auth model, and the auto-generated OpenAPI spec.
 - **[Changelog](../CHANGELOG.md)** — what changed and why.
 
 ## Run MCPlama
 
-For normal use, pull the published image. Cloning the repository and building
-the image locally is only needed when contributing or testing an unreleased
-change.
-
-```bash
-docker pull mcplama/mcplama:latest
-docker run -d --name mcplama -p 8080:8080 \
-  -v mcplama-data:/var/lib/postgresql \
-  -v /var/run/docker.sock:/var/run/docker.sock \
-  mcplama/mcplama:latest
-```
-
-Open http://localhost:8080, and complete the first-run **Setup** wizard to create the admin account (see [DEVELOPMENT.md](DEVELOPMENT.md#first-run)).
+Use the [Docker installation guide](DOCKER.md) for setup instructions,
+including local-only and HTTPS reverse-proxy deployments. It also covers
+recommended host specifications and persistent data. For contributors, see
+[DEVELOPMENT.md](DEVELOPMENT.md).
 
 ## Repository layout
 
