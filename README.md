@@ -7,7 +7,7 @@ concerns.
 
 ## Architecture at a glance
 
-[![Detailed MCPlama architecture showing clients, gateway request checks, PostgreSQL, remote MCP servers, broker, Docker runtime, and isolated runner containers.](docs/static/img/mcplama-architecture-detailed.svg)](docs/static/img/mcplama-architecture-detailed.svg)
+[![MCPlama architecture overview showing clients, gateway, PostgreSQL, remote MCP servers, and the private Docker network.](docs/static/img/mcplama-architecture-overview.svg)](docs/static/img/mcplama-architecture-overview.svg)
 
 The gateway does not talk to Docker directly. The broker is the only component
 with Docker socket access in the recommended multi-container deployment, and
@@ -70,8 +70,12 @@ docker run -d --name mcplama \
 ```
 
 Open http://localhost:8080 and go through the setup wizard to create your admin
-account. For production, provide secrets and put an HTTPS reverse proxy in
-front of the image; see [Docker image](docs/DOCKER.md).
+account.
+
+### For production
+
+**Provide secrets and put an HTTPS reverse proxy in front of the image; see
+[Docker image](docs/DOCKER.md).**
 
 If you want to change MCPlama, start with the
 [contributor development workflow](docs/DEVELOPMENT.md) instead of this
@@ -109,7 +113,7 @@ access, so compromising it cannot escalate to the host. See
 2. Click **Install** — server added, ready to authorize
 3. Click the server → **Authorization tab** — follow setup steps, paste credentials, click Authorize
 4. Go to **Connect tab** — create a connection token
-5. Copy the Claude Desktop config snippet — paste into `claude_desktop_config.json`
+5. Add the connection URL to your preferred MCP client.
 
 ![Animated walkthrough of adding an MCP server to MCPlama](docs/static/img/overview.gif)
 
