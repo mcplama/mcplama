@@ -1,66 +1,75 @@
-<h1><img src="ui/public/icons/mcplama-icon-64.png" width="36" align="center" alt="MCPlama icon"> MCPlama</h1>
+<h1 align="center">
+  <img src="ui/public/icons/mcplama-icon-64.png" width="48" align="center" alt="MCPlama icon">
+  MCPlama
+</h1>
 
-Open-source MCP gateway for connecting AI clients to governed, self-hosted
-tools. MCPlama centralizes connection credentials, access policy, audit events,
-and MCP server lifecycle without requiring every client to understand those
-concerns.
+<p align="center">
+  <strong>Run and manage your team's MCP servers from one place</strong>
+</p>
 
-## Architecture at a glance
+<p align="center">
+  Open-source · Self-hosted · MCP Gateway &amp; Control Plane
+</p>
 
-[![Detailed MCPlama architecture showing clients, gateway request checks, PostgreSQL, remote MCP servers, broker, Docker runtime, and isolated runner containers.](docs/static/img/mcplama-architecture-detailed.svg)](docs/static/img/mcplama-architecture-detailed.svg)
+MCPlama is a self-hosted MCP gateway and control plane for developers and teams who want to run multiple MCP servers without scattered credentials, duplicated client configuration, or unclear access.
 
-The gateway does not talk to Docker directly. The broker is the only component
-with Docker socket access in the recommended multi-container deployment, and
-the runner image never receives that socket. This boundary is documented in
-[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) and recorded as
-[`ADR-0001`](adr/0001-process-boundary-and-broker.md).
+Use it to centralize MCP server lifecycle, credentials, access policies, connections, and audit events while your AI clients connect through controlled MCP endpoints.
 
-## Screenshots
+![MCPlama overview](docs/static/img/mcplama_overview.png)
 
-### Admin dashboard
+Instead of giving every AI client direct access to MCP servers and their credentials, configure your servers once in MCPlama and give each user a controlled connection URL.
+
+## Why MCPlama?
+
+MCP is easy to start with, but running multiple MCP servers across a team gets messy fast.
+
+Without a control plane:
+
+- 🔐 Credentials end up scattered across developer machines
+- 🔌 Every client needs its own MCP configuration
+- 👥 Access becomes difficult to grant and revoke
+- 📋 Teams have little visibility into MCP activity
+- 🐳 MCP servers still need somewhere to run and be managed
+- 🛡️ Runtime access needs to be isolated from the gateway
+
+MCPlama gives you one control point:
+
+- 🌐 Controlled MCP connection URLs for your AI clients
+- 🔐 Centralized OAuth and API credentials
+- 👥 User and server access policies
+- 📋 Audit logs for MCP activity
+- 📦 MCP server catalog and lifecycle management
+- 🛡️ Separate broker boundary for MCP container execution
+
+Start locally with Docker. Move to shared team infrastructure when you need it.
 
 ![MCPlama admin dashboard with gateway activity, server status, and quick actions.](docs/static/img/mcplama-dash.png)
 
-### Member portal
-
-![MCPlama member portal showing available MCP servers and connection status.](docs/static/img/mcplama-member-redacted.png)
-
 ## Documentation
 
-- [Overview](docs/README.md) — architecture, stack, repo layout
-- [Architecture](docs/ARCHITECTURE.md) — processes, request flow, the container broker
-- [Security policy](docs/SECURITY.md) — how to report vulnerabilities
-- [Security model](docs/SECURITY-MODEL.md) — trust boundaries + production checklist
-- [Contributing](CONTRIBUTING.md) — development, review, and security rules
-- [Contributor development](docs/DEVELOPMENT.md) — running the source with hot reload
-- [Docker image](docs/DOCKER.md) — using the published image and releasing images
-- [Registry requests](docs/REGISTRY.md) — request or contribute an MCP catalog entry
-- [API reference](docs/API.md) — REST API, auth, and the OpenAPI spec
-- [Changelog](CHANGELOG.md) — what changed and why
-- [Design workflow](docs/DESIGN.md) — proposals and architecture decisions
+See the [`docs`](docs/) directory for architecture, security, deployment, API, and development documentation.
 
-## Repository map
+- [Architecture](docs/ARCHITECTURE.md)
+- [Security model](docs/SECURITY-MODEL.md)
+- [Docker deployment](docs/DOCKER.md)
+- [API reference](docs/API.md)
+- [Contributing](CONTRIBUTING.md)
 
-| Directory | Responsibility |
-|---|---|
-| `server/app/api` | HTTP endpoints, authentication, OAuth, and MCP connection routes |
-| `server/app/services` | Policy, registry, credentials, runtime, and proxy orchestration |
-| `server/app/models` | Database entities and durable state |
-| `server/app/broker` | Typed container lifecycle boundary; the only Docker-aware process |
-| `server/alembic` | Versioned PostgreSQL schema migrations |
-| `ui/src` | React operator dashboard and connection flows |
-| `registry` | Curated MCP server metadata and catalog index |
-| `deploy` | Bundled-image and LAN reverse-proxy/process configuration |
-| `docs` and `adr` | Architecture, security, operations, and durable design decisions |
+## Quickstart
 
-## Quick start (run the published image)
+This quickstart will show you how to:
 
-If you want to use MCPlama, pull the published image. You do not need to clone
-the repository or build the application locally.
+1. Start MCPlama locally with Docker
+2. Add and authorize an MCP server
+3. Connect an MCP client through MCPlama
+
+### Start MCPlama
+
+Pull and run the published image:
 
 ```bash
-# The image contains the UI, API, broker, registry, Nginx, and PostgreSQL.
 docker pull mcplama/mcplama:latest
+
 docker run -d --name mcplama \
   -p 8080:8080 \
   -v mcplama-data:/var/lib/postgresql \
@@ -68,67 +77,70 @@ docker run -d --name mcplama \
   mcplama/mcplama:latest
 ```
 
-Open http://localhost:8080 and go through the setup wizard to create your admin
-account.
+Open:
 
-### For production
-
-**Provide secrets and put an HTTPS reverse proxy in front of the image; see
-[Docker image](docs/DOCKER.md).**
-
-If you want to change MCPlama, start with the
-[contributor development workflow](docs/DEVELOPMENT.md) instead of this
-deployment command.
-
-Prefer to skip the wizard? Seed one directly (there's no default account):
-
-```bash
-docker exec -e SEED_ADMIN_EMAIL=me@example.com -e SEED_ADMIN_PASSWORD=changeme mcplama \
-  python -m app.db.seed
+```text
+http://localhost:8080
 ```
 
-## How it works
+Complete the setup wizard to create your admin account.
 
-```
-AI Client (Claude Desktop, Cursor)
-  └── mcp-remote → http://localhost:8000/connect/{token}
-        └── MCPlama gateway
-              ├── resolves connection token → user + server
-              ├── validates Origin (DNS-rebinding guard)
-              ├── checks access policies      (fails closed)
-              ├── injects OAuth/API token     (never sent to the client)
-              ├── writes audit log
-              └── proxies to real MCP server
-```
+There is no default admin account.
 
-MCP server containers are started by a separate **broker** process — the only
-component that can talk to the Docker socket. The gateway itself has no Docker
-access, so compromising it cannot escalate to the host. See
-[docs/SECURITY-MODEL.md](docs/SECURITY-MODEL.md).
+### Add an MCP server
 
-## Adding a server
-
-1. Go to **Catalog** — browse 10+ pre-configured connectors
-2. Click **Install** — server added, ready to authorize
-3. Click the server → **Authorization tab** — follow setup steps, paste credentials, click Authorize
-4. Go to **Connect tab** — create a connection token
-5. Add the connection URL to your preferred MCP client.
+1. Open **Catalog**
+2. Choose one of the pre-configured MCP servers
+3. Click **Install**
+4. Open the server's **Authorization** tab
+5. Follow the setup steps and provide the required credentials
+6. Click **Authorize**
 
 ![Animated walkthrough of adding an MCP server to MCPlama](docs/static/img/overview.gif)
 
-## Connection URL
+### Connect through MCPlama
 
+Open the server's **Connect** tab and create a connection token.
+
+MCPlama gives you a URL like:
+
+```text
+http://localhost:8000/connect/mcp_your_token
 ```
-http://localhost:8000/connect/{token}
-```
 
-Each user × server pair gets a unique token. No API keys in client config.
+Each user × server pair gets its own connection token. The underlying API credentials stay in MCPlama instead of being copied into the AI client's configuration.
 
-## Connecting your AI client
+You now have an MCP server running behind MCPlama with centralized credentials, access control, and auditing.
 
-### Claude Desktop
+## Member portal
 
-Edit `~/Library/Application Support/Claude/claude_desktop_config.json` (Mac) or `%APPDATA%\Claude\claude_desktop_config.json` (Windows):
+Team members can see and connect to the MCP servers available to them without receiving the underlying service credentials.
+
+![MCPlama member portal showing available MCP servers and connection status.](docs/static/img/mcplama-member-redacted.png)
+
+## How it works
+
+When an AI client connects through MCPlama, the gateway:
+
+1. Resolves the connection token to a user and server
+2. Validates the request origin
+3. Checks access policies
+4. Injects OAuth/API credentials
+5. Writes the audit log
+6. Proxies the request to the MCP server
+
+MCP server containers are started by a separate **broker** process.
+
+The broker is the only component with Docker socket access in the recommended multi-container deployment. The gateway itself has no Docker access, and runner containers never receive the Docker socket.
+
+See [Architecture](docs/ARCHITECTURE.md) and [Security model](docs/SECURITY-MODEL.md) for the full design.
+
+## Connecting other MCP clients
+
+Your connection URL can also be used with other MCP clients.
+
+<details>
+<summary><strong>Claude Desktop</strong></summary>
 
 ```json
 {
@@ -140,19 +152,14 @@ Edit `~/Library/Application Support/Claude/claude_desktop_config.json` (Mac) or 
 }
 ```
 
-Restart Claude Desktop. The server tools appear in the tools menu.
+Restart Claude Desktop after updating the configuration.
 
-### Claude Code (CLI)
+</details>
 
-```bash
-claude mcp add --transport http notion http://localhost:8000/connect/mcp_your_token
-```
+<details>
+<summary><strong>VS Code + GitHub Copilot</strong></summary>
 
-Verify with `claude mcp list`. To scope it to the current project only, add `--scope project`.
-
-### VS Code (GitHub Copilot)
-
-Requires VS Code 1.99+ with GitHub Copilot. Create `.vscode/mcp.json` in your project:
+Create `.vscode/mcp.json`:
 
 ```json
 {
@@ -164,9 +171,12 @@ Requires VS Code 1.99+ with GitHub Copilot. Create `.vscode/mcp.json` in your pr
 }
 ```
 
-Open Copilot Chat in Agent mode (`Ctrl+Shift+I` / `⌘+Shift+I`) — the tools are available automatically.
+Requires VS Code 1.99+ with GitHub Copilot.
 
-### Cursor
+</details>
+
+<details>
+<summary><strong>Cursor</strong></summary>
 
 Edit `~/.cursor/mcp.json`:
 
@@ -180,21 +190,28 @@ Edit `~/.cursor/mcp.json`:
 }
 ```
 
-## Environment variables
+</details>
 
-```env
-DATABASE_URL=postgresql+asyncpg://mcplama:change-me@postgres:5432/mcplama
-SECRET_KEY=change-me-in-production
-TOKEN_ENCRYPTION_KEY=32-byte-key-for-aes-encryption!!
-GATEWAY_URL=http://localhost:8000
-REGISTRY_URL=http://localhost:8000/api/v1/registry
-CORS_ORIGINS=http://localhost:5173
-```
+## Production
+
+The quickstart is intended for evaluating MCPlama locally.
+
+For production deployments, provide your own secrets and put an HTTPS reverse proxy in front of MCPlama.
+
+See [Docker deployment](docs/DOCKER.md) and [Security model](docs/SECURITY-MODEL.md) before exposing MCPlama outside a trusted environment.
+
+## Contributing
+
+Contributions and feedback are welcome.
+
+- [Contribution guidelines](CONTRIBUTING.md)
+- [Development setup](docs/DEVELOPMENT.md)
+- [Registry requests](docs/REGISTRY.md)
+
+If you're already running MCP infrastructure for a team, feedback around credentials, access control, deployment, auditing, and MCP server lifecycle is especially useful.
 
 ## License
 
-MCPlama is licensed under the GNU Affero General Public License, version 3 or
-any later version. See [LICENSE](LICENSE).
+MCPlama is licensed under the GNU Affero General Public License, version 3 or any later version. See [LICENSE](LICENSE).
 
-Third-party dependencies remain under their respective licenses. See
-[THIRD-PARTY-NOTICES](THIRD-PARTY-NOTICES) for dependency notices.
+Third-party dependencies remain under their respective licenses. See [THIRD-PARTY-NOTICES](THIRD-PARTY-NOTICES).
