@@ -11,6 +11,10 @@
   Open-source · Self-hosted · MCP Gateway &amp; Control Plane
 </p>
 
+<p align="center">
+  <a href="https://github.com/mcplama/mcplama/stargazers"><img src="https://img.shields.io/github/stars/mcplama/mcplama?style=social" alt="GitHub stars"></a>
+</p>
+
 MCPlama is a self-hosted MCP gateway and control plane for developers and teams who want to run multiple MCP servers without scattered credentials, duplicated client configuration, or unclear access.
 
 Use it to centralize MCP server lifecycle, credentials, access policies, connections, and audit events while your AI clients connect through controlled MCP endpoints.
@@ -43,7 +47,7 @@ MCPlama gives you one control point:
 
 Start locally with Docker. Move to shared team infrastructure when you need it.
 
-![MCPlama admin dashboard with gateway activity, server status, and quick actions.](docs/static/img/mcplama-dash.png)
+![MCPlama registry showing available MCP servers.](docs/static/img/mcplama_registry.png)
 
 ## Documentation
 
