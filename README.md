@@ -13,6 +13,8 @@
 
 <p align="center">
   <a href="https://github.com/mcplama/mcplama/stargazers"><img src="https://img.shields.io/github/stars/mcplama/mcplama?style=social" alt="GitHub stars"></a>
+  <a href="https://github.com/mcplama/mcplama/blob/main/LICENSE"><img src="https://img.shields.io/github/license/mcplama/mcplama" alt="License"></a>
+  <a href="https://hub.docker.com/r/mcplama/mcplama"><img src="https://img.shields.io/docker/pulls/mcplama/mcplama" alt="Docker pulls"></a>
 </p>
 
 MCPlama is a self-hosted MCP gateway and control plane for developers and teams who want to run multiple MCP servers without scattered credentials, duplicated client configuration, or unclear access.
