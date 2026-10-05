@@ -213,7 +213,7 @@ export default function Setup() {
                   <div>
                     <label htmlFor="terms-accepted" className="cursor-pointer">I have read and agree to the </label>
                     {termsInfo?.url
-                      ? <a href={termsInfo.url} target="_blank" rel="noopener noreferrer" className="text-accent underline">Terms of Use</a>
+                      ? <a href={termsInfo.url} target="_blank" rel="noopener noreferrer" className="cursor-pointer font-semibold text-brand-600 underline decoration-2 underline-offset-2 hover:text-brand-700 focus-visible:rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500 dark:text-brand-400 dark:hover:text-brand-300">Terms of Use</a>
                       : <span>Terms of Use</span>}
                     {termsInfo?.version ? ` (version ${termsInfo.version})` : ''}.
                   </div>
