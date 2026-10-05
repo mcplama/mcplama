@@ -2,12 +2,13 @@
 /* SPDX-License-Identifier: AGPL-3.0-or-later */
 
 import { useState, useEffect } from 'react'
-import { ExternalLink, Clock, Check, Pencil } from 'lucide-react'
+import { ExternalLink, Clock, Check, Pencil, RefreshCw } from 'lucide-react'
 import api from '../lib/api'
 import { PageHeader } from '../components/ui'
 import { Modal, ModalHeader } from '../components/ui/Modal'
 import { SmtpSettings } from './SmtpSettings'
 import Button from '../components/kit/Button'
+import { useAuth } from '../hooks/useAuth'
 
 const ALL_ZONES = (() => {
   try { return Intl.supportedValuesOf('timeZone') } catch { return ['UTC'] }
@@ -54,8 +55,11 @@ function Section({ title, children, action }) {
 }
 
 export default function SettingsPage() {
+  const { isAdmin } = useAuth()
   const [stats, setStats]   = useState(null)
   const [health, setHealth] = useState(null)
+  const [versionCheck, setVersionCheck] = useState(null)
+  const [checkingVersion, setCheckingVersion] = useState(false)
 
   // Gateway config
   const [gConfig, setGConfig]   = useState({ gateway_name: '', app_url: '', default_token_expiry_days: '', mcp_access_token_lifetime_hours: '' })
@@ -91,6 +95,16 @@ export default function SettingsPage() {
       mcp_access_token_lifetime_hours: r.data.mcp_access_token_lifetime_hours ?? '',
     })).catch(() => {})
   }, [])
+
+  useEffect(() => {
+    if (isAdmin) api.get('/version/check').then(r => setVersionCheck(r.data)).catch(() => {})
+  }, [isAdmin])
+
+  const checkVersionNow = async () => {
+    setCheckingVersion(true)
+    try { const { data } = await api.get('/version/check', { params: { force: true } }); setVersionCheck(data) }
+    catch {} finally { setCheckingVersion(false) }
+  }
 
   useEffect(() => {
     const t = setInterval(() => setNow(new Date()), 1000)
@@ -210,7 +224,7 @@ export default function SettingsPage() {
           </Section>
 
           {/* ── System ────────────────────────────────────────── */}
-          <Section title="System">
+          <Section title="System" action={isAdmin && <button type="button" onClick={checkVersionNow} disabled={checkingVersion} className="inline-flex shrink-0 items-center gap-2 rounded-full border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"><RefreshCw size={14} className={checkingVersion ? 'animate-spin' : ''} />{checkingVersion ? 'Checking…' : 'Check for updates'}</button>}>
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-3 lg:gap-7">
               {[...healthRows, ...statsRows].map(({ label, value, ok }) => (
                 <div key={label}>
@@ -221,6 +235,11 @@ export default function SettingsPage() {
                 </div>
               ))}
             </div>
+            {isAdmin && <div className="mt-5 border-t border-gray-100 pt-4 dark:border-gray-800">
+              <p className="text-xs text-gray-500 dark:text-gray-400">{versionCheck?.error ? versionCheck.error : versionCheck?.update_available ? `Version ${versionCheck.latest_version} is available.` : versionCheck?.latest_version ? `You’re up to date on version ${versionCheck.current_version}.` : 'Release version check has not completed yet.'}</p>
+              {versionCheck?.update_available && versionCheck.release_url && <a className="mt-1 inline-block text-sm font-medium text-brand-600 hover:underline dark:text-brand-400" href={versionCheck.release_url} target="_blank" rel="noreferrer">View release notes</a>}
+              <a className="mt-1 ml-3 inline-block text-sm font-medium text-brand-600 hover:underline dark:text-brand-400" href="https://mcplama.com/versions" target="_blank" rel="noreferrer">All versions</a>
+            </div>}
           </Section>
 
           {/* ── API endpoints ─────────────────────────────────── */}

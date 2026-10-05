@@ -101,6 +101,8 @@ const QUICK_ACTIONS = [
 export default function Dashboard() {
   const [stats, setStats]                     = useState(null)
   const [health, setHealth]                   = useState(null)
+  const [versionCheck, setVersionCheck]       = useState(null)
+  const [checkingVersion, setCheckingVersion] = useState(false)
   const [servers, setServers]                 = useState([])
   const [logs, setLogs]                       = useState([])
   const [chartLogs, setChartLogs]             = useState([])
@@ -111,7 +113,7 @@ export default function Dashboard() {
   const [liveEnabled, setLiveEnabled]         = useState(true)
   const [period, setPeriod]                   = useState('Today')
   const [pendingRequests, setPendingRequests] = useState([])
-  const { user }  = useAuth()
+  const { user, isAdmin }  = useAuth()
   const liveRef   = useRef(null)
 
   const sinceForPeriod = (p) => {
@@ -156,6 +158,18 @@ export default function Dashboard() {
     finally { setLoading(false) }
   }, [])
 
+  useEffect(() => {
+    if (isAdmin) api.get('/version/check').then(r => setVersionCheck(r.data)).catch(() => {})
+  }, [isAdmin])
+
+  const checkVersionNow = async () => {
+    setCheckingVersion(true)
+    try {
+      const { data } = await api.get('/version/check', { params: { force: true } })
+      setVersionCheck(data)
+    } catch {} finally { setCheckingVersion(false) }
+  }
+
   useEffect(() => { load() }, [load])
   useEffect(() => { loadChart(period) }, [period, loadChart])
   useEffect(() => {
@@ -175,6 +189,7 @@ export default function Dashboard() {
   const policyBlocks = logs.filter(l => l.action === 'policy.blocked').length
   const latencies    = logs.filter(l => l.latency_ms).map(l => l.latency_ms)
   const avgLatency   = latencies.length ? Math.round(latencies.reduce((a, b) => a + b, 0) / latencies.length) : 0
+  const installedVersion = versionCheck?.current_version || health?.version || '1.0.0'
 
   const chartData = useMemo(() => {
     const now = new Date()
@@ -217,7 +232,28 @@ export default function Dashboard() {
       <div className="col-span-12">
         <p className="text-theme-sm text-gray-500 dark:text-gray-400 mb-0.5">Hi {firstName},</p>
         <h1 className="text-title-sm font-bold text-gray-800 dark:text-white/90 tracking-tight">Welcome back!</h1>
+        {isAdmin && versionCheck?.current_version && !versionCheck.update_available && (
+          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">MCPlama {versionCheck.current_version} · up to date</p>
+        )}
       </div>
+
+      {isAdmin && versionCheck?.update_available && (
+        <div className="col-span-12 rounded-2xl border border-warning-200 bg-warning-50 px-5 py-4 dark:border-warning-500/30 dark:bg-warning-500/10">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="font-semibold text-gray-800 dark:text-white/90">MCPlama {versionCheck.latest_version} is available</p>
+              <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">You’re running {installedVersion}. Review the release notes for upgrade instructions.</p>
+            </div>
+            <div className="flex shrink-0 items-center gap-4">
+              <a href="https://mcplama.com/versions" target="_blank" rel="noreferrer" className="text-sm font-medium text-brand-600 hover:underline dark:text-brand-400">All versions</a>
+              {versionCheck.release_url && <a href={versionCheck.release_url} target="_blank" rel="noreferrer" className="text-sm font-medium text-brand-600 hover:underline dark:text-brand-400">Release notes</a>}
+              <button type="button" onClick={checkVersionNow} disabled={checkingVersion} className="text-sm font-medium text-gray-600 hover:text-gray-900 disabled:opacity-50 dark:text-gray-300 dark:hover:text-white">
+                {checkingVersion ? 'Checking…' : 'Check again'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Main column ── */}
       <div className="col-span-12 xl:col-span-8 space-y-4 md:space-y-6">
