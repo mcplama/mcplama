@@ -285,11 +285,7 @@ function ServerCard({ server, connection, onConnect, requestStatus, isRequesting
   const hasConnection = !!connection
   const isPerUser = server.auth_mode === 'per_user'
   const isShared = server.auth_mode === 'shared' || server.auth_mode === 'none'
-  const connUrl = (() => {
-    if (!connection?.mcp_url) return undefined
-    try { return window.location.origin + new URL(connection.mcp_url).pathname }
-    catch { return connection.mcp_url }
-  })()
+  const connUrl = connection?.mcp_url
   // Show cred form when per_user + schema exists + creds not yet saved.
   // Shown even when hasConnection so users can update credentials.
   const needsCreds = isPerUser && schema.length > 0 && !credsSaved

@@ -11,10 +11,6 @@ import { copyText } from '../lib/clipboard'
 import { parseServerTimestamp } from '../lib/formatTime'
 import api from '../lib/api'
 
-function fixMcpUrl(url) {
-  try { return window.location.origin + new URL(url).pathname } catch { return url }
-}
-
 function fmtDate(iso) {
   if (!iso) return '—'
   return parseServerTimestamp(iso).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })
@@ -129,10 +125,20 @@ export function Connections() {
     useBackendPagination((limit, offset) => api.get(`/connections?limit=${limit}&offset=${offset}`))
 
   const revoke = async (id) => {
-    if (!confirm('Revoke this connection? Your AI client will lose access immediately.')) return
+    if (!confirm('Delete this connection? Your AI client will lose access immediately.')) return
     setRevoking(id)
     try { await api.delete('/connections/' + id); load() }
     finally { setRevoking(null) }
+  }
+
+  const setConnectionActive = async (connection, isActive) => {
+    setRevoking(connection.id)
+    try {
+      await api.patch(`/connections/${connection.id}`, { is_active: isActive })
+      load()
+    } finally {
+      setRevoking(null)
+    }
   }
 
   const isOnline = c => c.last_used_at && Date.now() - parseServerTimestamp(c.last_used_at) < 30 * 60_000
@@ -183,7 +189,7 @@ export function Connections() {
                 {connections.map(c => {
                   const online = isOnline(c)
                   const expired = isExpired(c.expires_at)
-                  const mcpUrl = fixMcpUrl(c.mcp_url)
+                  const mcpUrl = c.mcp_url
                   return (
                     <tr key={c.id} className={(!c.is_active || expired) ? 'opacity-50' : ''}>
                       <td className="py-4 pl-6 pr-5">
@@ -206,7 +212,7 @@ export function Connections() {
                             ? <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium bg-success-50 text-success-600 dark:bg-success-500/15 dark:text-success-500">● Online</span>
                             : <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium bg-success-50 text-success-600 dark:bg-success-500/15 dark:text-success-500">Active</span>
                         ) : (
-                          <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium bg-error-50 text-error-600 dark:bg-error-500/15 dark:text-error-500">Revoked</span>
+                          <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium bg-gray-100 text-gray-500 dark:bg-white/10 dark:text-gray-400">Inactive</span>
                         )}
                       </td>
 
@@ -234,20 +240,27 @@ export function Connections() {
                       </td>
 
                       <td className="px-5 py-4 whitespace-nowrap">
-                        <label className="flex cursor-pointer select-none items-center">
-                          <div className="relative" onClick={() => c.is_active && revoke(c.id)}>
-                            <div className={`block h-6 w-11 rounded-full transition duration-150 ease-linear ${c.is_active && !expired ? 'bg-brand-500' : 'bg-gray-200 dark:bg-white/10'}`} />
-                            <div className={`absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow-theme-sm duration-150 ease-linear transform ${c.is_active && !expired ? 'translate-x-full' : 'translate-x-0'}`} />
-                          </div>
-                        </label>
+                        <button
+                          type="button"
+                          role="switch"
+                          aria-checked={c.is_active}
+                          aria-label={`${c.is_active ? 'Deactivate' : 'Activate'} ${c.label || c.server_name || 'connection'}`}
+                          disabled={revoking === c.id}
+                          onClick={() => setConnectionActive(c, !c.is_active)}
+                          className="flex cursor-pointer select-none items-center disabled:cursor-wait disabled:opacity-50"
+                        >
+                          <span className={`relative block h-6 w-11 rounded-full transition duration-150 ease-linear ${c.is_active ? 'bg-brand-500' : 'bg-gray-200 dark:bg-white/10'}`}>
+                            <span className={`absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow-theme-sm duration-150 ease-linear transform ${c.is_active ? 'translate-x-full' : 'translate-x-0'}`} />
+                          </span>
+                        </button>
                       </td>
 
                       <td className="px-5 py-4 whitespace-nowrap">
                         <button
                           onClick={() => revoke(c.id)}
-                          disabled={revoking === c.id || !c.is_active}
+                          disabled={revoking === c.id}
                           className="text-gray-500 dark:text-gray-400 hover:text-error-500 dark:hover:text-error-500 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                          title="Revoke"
+                          title="Delete connection"
                         >
                           <Trash2 size={18} />
                         </button>

@@ -46,6 +46,7 @@ class ConnectionCreate(BaseModel):
 
 
 class ConnectionPatch(BaseModel):
+    is_active: Optional[bool] = None
     expires_at: Optional[datetime] = None
 
 
@@ -224,9 +225,16 @@ async def update_connection(
     conn = result.scalar_one_or_none()
     if not conn:
         raise HTTPException(404, "Connection not found")
-    conn.expires_at = data.expires_at
+    changes = data.dict(exclude_unset=True)
+    for field, value in changes.items():
+        setattr(conn, field, value)
     await db.commit()
     await db.refresh(conn)
+    if changes.get("is_active") is False:
+        srv_result = await db.execute(select(Server).where(Server.id == conn.server_id))
+        server = srv_result.scalar_one_or_none()
+        if server and server.runtime and server.runtime.value != "remote":
+            asyncio.create_task(_stop_container_bg(server, conn.user_id))
     return await _enrich(conn, db)
 
 

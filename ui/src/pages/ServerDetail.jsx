@@ -257,7 +257,7 @@ function ConnectTab({ server, connections, onCreateConnection }) {
   const isRemoteOAuth = server.runtime === 'remote' && server.remote_auth === 'oauth'
 
   const mainConn = connections[0]
-  const proxyUrl = mainConn ? `${window.location.origin}/connect/${mainConn.token}` : null
+  const proxyUrl = mainConn?.mcp_url || null
 
   const claudeConfig = proxyUrl ? JSON.stringify({ mcpServers: { [server.slug]: { url: proxyUrl } } }, null, 2) : null
   const claudeCodeConfig = proxyUrl ? JSON.stringify({ mcpServers: { [server.slug]: { type: 'http', url: proxyUrl } } }, null, 2) : null
@@ -887,7 +887,7 @@ export default function ServerDetail() {
                     ) : myConns.map(c => (
                       <div key={c.id} className="mb-3 last:mb-0 min-w-0">
                         <p className="text-xs font-semibold mb-1 text-gray-600 dark:text-gray-300">{c.label || c.server_name}</p>
-                        <p className="text-[10px] font-mono truncate text-gray-400">{`${window.location.origin}/connect/${c.token}`}</p>
+                        <p className="text-[10px] font-mono truncate text-gray-400">{c.mcp_url}</p>
                       </div>
                     ))}
                     <Link to="/connections" className="block text-xs mt-3 text-brand-500 hover:underline">
@@ -990,7 +990,7 @@ export default function ServerDetail() {
                 ) : myConns.map(c => (
                   <div key={c.id} className="mb-3 last:mb-0 min-w-0">
                     <p className="text-xs font-semibold mb-1 text-gray-600 dark:text-gray-300">{c.label || c.server_name}</p>
-                    <p className="text-[10px] font-mono truncate text-gray-400">{`${window.location.origin}/connect/${c.token}`}</p>
+                    <p className="text-[10px] font-mono truncate text-gray-400">{c.mcp_url}</p>
                   </div>
                 ))}
                 <Link to="/connections" className="block text-xs mt-3 text-brand-500 hover:underline">
