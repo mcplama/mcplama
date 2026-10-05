@@ -51,7 +51,7 @@ function CardHeader({ title, sub, link, action }) {
   )
 }
 
-function MetricCard({ icon: Icon, label, value, iconBg, iconColor, positive }) {
+function MetricCard({ icon: Icon, label, value, iconBg, iconColor, positive, sub }) {
   return (
     <Card className="p-5 md:p-6">
       <div className="flex items-center justify-between">
@@ -68,6 +68,7 @@ function MetricCard({ icon: Icon, label, value, iconBg, iconColor, positive }) {
       <div className="mt-5">
         <span className="text-sm text-gray-500 dark:text-gray-400">{label}</span>
         <h4 className="mt-2 font-bold text-gray-800 text-title-sm dark:text-white/90 leading-none">{value}</h4>
+        {sub && <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">{sub}</p>}
       </div>
     </Card>
   )
@@ -226,7 +227,7 @@ export default function Dashboard() {
           <MetricCard icon={Server}        label="Active servers"  value={totalServers} iconBg="bg-brand-50 dark:bg-brand-500/15"      iconColor="text-brand-500"              positive={totalServers > 0} />
           <MetricCard icon={Plug}          label="Connections"     value={connections}  iconBg="bg-success-50 dark:bg-success-500/15"  iconColor="text-success-600 dark:text-success-400" positive={connections > 0} />
           <MetricCard icon={Wrench}        label="Tools"           value={tools}        iconBg="bg-blue-light-50 dark:bg-blue-light-500/15" iconColor="text-blue-light-500"   positive={null} />
-          <MetricCard icon={AlertTriangle} label="Policy blocks"   value={policyBlocks} iconBg="bg-warning-50 dark:bg-warning-500/15"  iconColor="text-warning-600 dark:text-orange-400" positive={policyBlocks === 0} />
+          <MetricCard icon={AlertTriangle} label="Policy blocks"   value={policyBlocks} iconBg="bg-warning-50 dark:bg-warning-500/15"  iconColor="text-warning-600 dark:text-orange-400" positive={null} sub="Requests denied by policy" />
         </div>
 
         {/* Gateway hero + calls chart */}
