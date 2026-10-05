@@ -240,7 +240,10 @@ async def update_connection(
 
 @router.delete("/{connection_id}", status_code=204)
 async def revoke_connection(connection_id: int, db: AsyncSession = Depends(get_db), user: User = Depends(get_current_user)):
-    result = await db.execute(select(Connection).where(Connection.id == connection_id, Connection.user_id == user.id))
+    q = select(Connection).where(Connection.id == connection_id)
+    if user.role != "admin":
+        q = q.where(Connection.user_id == user.id)
+    result = await db.execute(q)
     conn = result.scalar_one_or_none()
     if not conn:
         raise HTTPException(404, "Connection not found")
