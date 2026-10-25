@@ -270,13 +270,19 @@
       "transport": "streamable_http",
       "auth_type": "oauth",
       "auth_mode": "per_user",
-      "requirements": "Endpoint: https://mcp.revenuecat.ai/mcp. Authenticate with RevenueCat OAuth or provide an API v2 secret key.",
+      "requirements": "Endpoint: https://mcp.revenuecat.ai/mcp. RevenueCat requires OAuth clients to be registered through RevenueCat Support; have MCPlama's OAuth client registered with your public callback URL and requested scopes, then configure the shared client ID and secret here. Each user authorizes their own RevenueCat account. An API v2 secret key can be used instead when configuring the endpoint with Bearer authentication.",
       "url": "https://mcp.revenuecat.ai/mcp",
       "remote_auth": "oauth",
       "oauth_client": {
-        "required": false,
-        "registration": "discovered",
-        "fields": []
+        "required": true,
+        "credential_mode": "shared",
+        "credential_mode_options": ["shared"],
+        "default_credential_mode": "shared",
+        "registration": "static",
+        "fields": [
+          { "key": "oauth_client_id", "label": "RevenueCat OAuth client ID", "type": "text", "required": true },
+          { "key": "oauth_client_secret", "label": "RevenueCat OAuth client secret", "type": "secret", "required": true }
+        ]
       }
     },
     {
