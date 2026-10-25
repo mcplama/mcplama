@@ -24,7 +24,7 @@ from sqlalchemy import select, and_, delete
 from app.db.session import get_db
 from app.models.audit import AuditLog
 from app.models.oauth_state import OAuthState
-from app.models.server import Server
+from app.models.server import Server, Runtime
 from app.models.user import User
 from app.api.v1.endpoints.auth import get_current_user
 from app.core.security import decode_token
@@ -451,6 +451,13 @@ async def get_valid_oauth_token(server_id: int, user_id: int, db: AsyncSession) 
     server = await db.get(Server, server_id)
     if not server:
         return None
+    # Remote MCP OAuth tokens have their own token_type and encryption AAD;
+    # they must be read through the upstream token store (which also refreshes
+    # them). The generic OAuth token store uses a different context and raises
+    # InvalidTag for these rows.
+    if server.runtime == Runtime.remote and server.remote_auth == "oauth":
+        return await get_upstream_token(db, server_id, user_id)
+
     uid = user_id if str(server.auth_mode).endswith("per_user") else None
     stored = await token_store.get_token(db, server_id, uid)
     if not stored or not stored.access_token:
