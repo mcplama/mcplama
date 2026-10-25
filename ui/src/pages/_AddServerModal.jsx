@@ -36,6 +36,7 @@ export default function AddServerModal({ onClose, onAdded }) {
     url: '', remote_auth: 'none',
     auth_header_name: 'Authorization', auth_header_value: '',
     oauth_client_id: '', oauth_client_secret: '',
+    oauth_client_mode: 'shared',
     oauth_auth_url: '', oauth_token_url: '', oauth_scopes: '', oauth_pkce: true, oauth_token_auth: 'basic',
     docker_image: '', docker_args: '', container_port: '8000', transport: 'stdio',
     package: '', args: '', system_packages: '',
@@ -86,8 +87,15 @@ export default function AddServerModal({ onClose, onAdded }) {
           }
         } else if (form.remote_auth === 'oauth') {
           payload.auth_mode = 'per_user'; payload.auth_type = 'oauth'
-          payload.oauth_client_id = form.oauth_client_id
-          payload.oauth_client_secret = form.oauth_client_secret
+          payload.oauth_client_mode = form.oauth_client_mode
+          payload.oauth_client_id = form.oauth_client_mode === 'shared' ? form.oauth_client_id : null
+          payload.oauth_client_secret = form.oauth_client_mode === 'shared' ? form.oauth_client_secret : null
+          if (form.oauth_client_mode === 'per_user') {
+            payload.user_config_schema = [
+              { key: 'oauth_client_id', label: 'OAuth client ID', type: 'text', placeholder: 'Client ID issued by the provider' },
+              { key: 'oauth_client_secret', label: 'OAuth client secret', type: 'secret', placeholder: 'Client secret issued by the provider' },
+            ]
+          }
           payload.oauth_auth_url = form.oauth_auth_url
           payload.oauth_token_url = form.oauth_token_url
           payload.oauth_scopes = form.oauth_scopes
@@ -235,14 +243,36 @@ export default function AddServerModal({ onClose, onAdded }) {
               </div>
             )}
             {form.remote_auth === 'oauth' && (
+              <div className="space-y-3">
+                <div>
+                  <label className={cls.label}>OAuth app credentials <FormHelp text="This controls who supplies the OAuth client ID and secret. Users still authorize their own provider account either way." /></label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {[{id:'shared',label:'Shared',desc:'Admin configures one OAuth app'},{id:'per_user',label:'Per user',desc:'Each member supplies an OAuth app'}].map(m => (
+                      <button type="button" key={m.id} onClick={() => setForm(f => ({ ...f, oauth_client_mode: m.id }))}
+                        className={`flex flex-col gap-0.5 p-3 rounded-xl border text-left transition-all ${form.oauth_client_mode === m.id ? 'bg-accent border-accent' : 'bg-bg border-border'}`}>
+                        <p className={`text-xs font-semibold ${form.oauth_client_mode === m.id ? 'text-white' : 'text-t1'}`}>{m.label}</p>
+                        <p className={`text-[10px] ${form.oauth_client_mode === m.id ? 'text-white/70' : 'text-t3'}`}>{m.desc}</p>
+                      </button>
+                    ))}
+                  </div>
+                  <p className="text-[10px] mt-1.5 text-t3">
+                    {form.oauth_client_mode === 'shared'
+                      ? 'The client ID and secret below are shared by this deployment. Leave them blank when the provider supports dynamic client registration.'
+                      : 'Members will enter their own client ID and secret in the portal before authorizing.'}
+                  </p>
+                </div>
               <details open={!!form.oauth_client_id}>
                 <summary className="text-[11px] font-semibold cursor-pointer text-t3 list-none">▶ Manual credentials (only if auto-discovery fails)</summary>
                 <div className="mt-3 space-y-3 pl-3 border-l-2 border-border">
                   <p className="text-[10px] text-t3">Leave blank to use auto-discovery and dynamic registration. Required for providers like GitHub that don't support RFC 8414 metadata or dynamic client registration.</p>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div><label className={cls.label}>Client ID <FormHelp text="OAuth client identifier supplied by the MCP server provider." /></label><input className={cls.input} value={form.oauth_client_id} onChange={set('oauth_client_id')} placeholder="optional" /></div>
-                    <div><label className={cls.label}>Client Secret <FormHelp text="OAuth client secret supplied by the MCP server provider." /></label><input className={cls.input} type="password" value={form.oauth_client_secret} onChange={set('oauth_client_secret')} placeholder="optional" /></div>
-                  </div>
+                  {form.oauth_client_mode === 'shared' ? (
+                    <div className="grid grid-cols-2 gap-3">
+                      <div><label className={cls.label}>Client ID <FormHelp text="Shared OAuth client identifier supplied by the MCP server provider." /></label><input className={cls.input} value={form.oauth_client_id} onChange={set('oauth_client_id')} placeholder="optional" /></div>
+                      <div><label className={cls.label}>Client Secret <FormHelp text="Shared OAuth client secret supplied by the MCP server provider." /></label><input className={cls.input} type="password" value={form.oauth_client_secret} onChange={set('oauth_client_secret')} placeholder="optional" /></div>
+                    </div>
+                  ) : (
+                    <p className="text-[10px] text-t3">Each member will provide their OAuth client ID and secret in their portal. The authorization and token URLs below remain deployment-wide settings.</p>
+                  )}
                   <div className="grid grid-cols-2 gap-3">
                     <div><label className={cls.label}>Authorization URL <FormHelp text="OAuth URL where users authorize access." /></label><input className={cls.input} value={form.oauth_auth_url} onChange={set('oauth_auth_url')} placeholder="https://github.com/login/oauth/authorize" /></div>
                     <div><label className={cls.label}>Token URL <FormHelp text="OAuth URL where MCPlama exchanges the authorization code for a token." /></label><input className={cls.input} value={form.oauth_token_url} onChange={set('oauth_token_url')} placeholder="https://github.com/login/oauth/access_token" /></div>
@@ -258,6 +288,7 @@ export default function AddServerModal({ onClose, onAdded }) {
                   </div>
                 </div>
               </details>
+              </div>
             )}
           </div>
         )}

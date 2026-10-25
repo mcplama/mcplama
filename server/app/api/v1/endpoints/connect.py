@@ -20,7 +20,7 @@ from app.models.server import Server, Runtime, AuthMode
 from app.models.audit import AuditLog
 from app.services import container_manager as cm
 from app.services import stdio_bridge as bridge
-from app.services.token_store import get_token
+from app.services.token_store import get_token, get_credentials
 from app.core.encryption import decrypt_dict, decrypt
 from app.core.ssrf import validate_remote_url
 
@@ -140,7 +140,8 @@ async def _build_env(server: Server, conn) -> dict:
         env.update({k: v for k, v in cfg.items() if v})
     elif server.auth_mode == AuthMode.per_user:
         async with AsyncSessionLocal() as db:
-            stored = await get_token(db, server.id, conn.user_id)
+            env.update(await get_credentials(db, server.id, conn.user_id))
+            stored = await get_token(db, server.id, conn.user_id) if not env else None
         if stored and stored.access_token:
             schema = server.user_config_schema or []
             key = schema[0].get("key", "API_TOKEN") if schema else "API_TOKEN"

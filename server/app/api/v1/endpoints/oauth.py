@@ -14,7 +14,7 @@ import logging
 import secrets
 from datetime import datetime, timedelta
 from typing import Optional
-from urllib.parse import urlparse, urlunparse
+from urllib.parse import urlparse, urlunparse, urlencode
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import RedirectResponse
@@ -525,7 +525,19 @@ async def mcp_upstream_authorize(
     # Use a distinct callback path for upstream MCP OAuth
     mcp_cb_uri = cb_uri.replace("/oauth/callback", "/oauth/mcp-callback")
 
-    client_creds = await get_or_register_client(db, server.id, mcp_url, oauth_meta, mcp_cb_uri)
+    client_override = None
+    if server.oauth_client_mode == "per_user":
+        from app.services.token_store import get_credentials
+        user_creds = await get_credentials(db, server.id, current_user.id)
+        client_override = {
+            "client_id": user_creds.get("oauth_client_id"),
+            "client_secret": user_creds.get("oauth_client_secret"),
+        }
+        if not client_override["client_id"]:
+            raise HTTPException(400, "Save your OAuth client credentials before connecting.")
+    client_creds = await get_or_register_client(
+        db, server.id, mcp_url, oauth_meta, mcp_cb_uri, client_override=client_override
+    )
 
     state = secrets.token_urlsafe(32)
     verifier = pkce_verifier()
@@ -557,10 +569,14 @@ async def mcp_upstream_authorize(
         "code_challenge": challenge,
         "code_challenge_method": "S256",
     }
+    # Registry entries may declare fixed provider scopes (for example Google
+    # Calendar). RFC 9728 metadata can also advertise scopes for the resource.
+    scopes = server.oauth_scopes or (oauth_meta.get("resource_meta") or {}).get("scopes_supported")
+    if scopes:
+        params["scope"] = " ".join(scopes) if isinstance(scopes, list) else scopes
 
-    auth_url = oauth_meta["authorization_endpoint"] + "?" + "&".join(
-        f"{k}={v}" for k, v in params.items()
-    )
+    separator = "&" if "?" in oauth_meta["authorization_endpoint"] else "?"
+    auth_url = oauth_meta["authorization_endpoint"] + separator + urlencode(params)
     return RedirectResponse(auth_url)
 
 
@@ -608,7 +624,17 @@ async def mcp_upstream_callback(
 
     cb_uri = await _callback_uri(db)
     mcp_cb_uri = cb_uri.replace("/oauth/callback", "/oauth/mcp-callback")
-    client_creds = await get_or_register_client(db, server.id, mcp_url, oauth_meta, mcp_cb_uri)
+    client_override = None
+    if server.oauth_client_mode == "per_user":
+        from app.services.token_store import get_credentials
+        user_creds = await get_credentials(db, server.id, oauth_state.user_id)
+        client_override = {
+            "client_id": user_creds.get("oauth_client_id"),
+            "client_secret": user_creds.get("oauth_client_secret"),
+        }
+    client_creds = await get_or_register_client(
+        db, server.id, mcp_url, oauth_meta, mcp_cb_uri, client_override=client_override
+    )
 
     # Exchange code for tokens
     data = {

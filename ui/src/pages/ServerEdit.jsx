@@ -41,7 +41,7 @@ export default function ServerEdit() {
   const [form, setForm] = useState({
     name:'', category:'', description:'', logo_url:'', url:'', remote_auth:'none',
     auth_header_name:'', auth_header_value:'',
-    oauth_client_id:'', oauth_client_secret:'', oauth_auth_url:'', oauth_token_url:'', oauth_scopes:'', oauth_pkce:false, oauth_token_auth:'basic',
+    oauth_client_id:'', oauth_client_secret:'', oauth_client_mode:'shared', oauth_auth_url:'', oauth_token_url:'', oauth_scopes:'', oauth_pkce:false, oauth_token_auth:'basic',
     docker_image:'', container_port:'8000', docker_args:'', package:'', args:'', system_packages:'', auth_mode:'none',
     cpu_limit:'', memory_limit:'', mcp_path:'',
   })
@@ -58,6 +58,7 @@ export default function ServerEdit() {
           url:data.url||'', remote_auth:data.remote_auth||'none',
           auth_header_name:data.auth_header_name||'', auth_header_value:data.auth_header_value||'',
           oauth_client_id:data.oauth_client_id||'', oauth_client_secret:data.oauth_client_secret||'',
+          oauth_client_mode:data.oauth_client_mode||'shared',
           oauth_auth_url:data.oauth_auth_url||'', oauth_token_url:data.oauth_token_url||'',
           oauth_scopes:data.oauth_scopes||'', oauth_pkce:data.oauth_pkce||false, oauth_token_auth:data.oauth_token_auth||'basic',
           docker_image:data.docker_image||'', container_port:data.container_port||'8000',
@@ -116,7 +117,16 @@ export default function ServerEdit() {
           }
         }
         else if (form.remote_auth==='header') { payload.auth_header_name=form.auth_header_name; payload.auth_header_value=form.auth_header_value; payload.auth_mode='none'; payload.auth_type='header' }
-        else if (form.remote_auth==='oauth') { payload.auth_mode='per_user'; payload.auth_type='oauth'; payload.oauth_client_id=form.oauth_client_id; payload.oauth_client_secret=form.oauth_client_secret; payload.oauth_auth_url=form.oauth_auth_url; payload.oauth_token_url=form.oauth_token_url; payload.oauth_scopes=form.oauth_scopes; payload.oauth_pkce=form.oauth_pkce; payload.oauth_token_auth=form.oauth_token_auth }
+        else if (form.remote_auth==='oauth') {
+          payload.auth_mode='per_user'; payload.auth_type='oauth'; payload.oauth_client_mode=form.oauth_client_mode
+          payload.oauth_client_id=form.oauth_client_mode==='shared' ? form.oauth_client_id : null
+          payload.oauth_client_secret=form.oauth_client_mode==='shared' ? form.oauth_client_secret : null
+          payload.user_config_schema=form.oauth_client_mode==='per_user' ? [
+            { key:'oauth_client_id', label:'OAuth client ID', type:'text', placeholder:'Client ID issued by the provider' },
+            { key:'oauth_client_secret', label:'OAuth client secret', type:'secret', placeholder:'Client secret issued by the provider' },
+          ] : []
+          payload.oauth_auth_url=form.oauth_auth_url; payload.oauth_token_url=form.oauth_token_url; payload.oauth_scopes=form.oauth_scopes; payload.oauth_pkce=form.oauth_pkce; payload.oauth_token_auth=form.oauth_token_auth
+        }
         else payload.auth_mode='none'
         // Always sent (even empty) so removing every row actually clears them
         // server-side — same convention as docker_args/args below.
@@ -253,14 +263,31 @@ export default function ServerEdit() {
               </div>
             )}
             {form.remote_auth==='oauth' && (
+              <div className="space-y-3">
+                <div>
+                  <label className={labelCls}>OAuth app credentials</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {[{id:'shared',label:'Shared',desc:'Admin configures one OAuth app'},{id:'per_user',label:'Per user',desc:'Each member supplies an OAuth app'}].map(m => (
+                      <button type="button" key={m.id} onClick={() => setForm(f=>({...f,oauth_client_mode:m.id}))} className={selBtn(form.oauth_client_mode===m.id)}>
+                        <p className={selTxt(form.oauth_client_mode===m.id,'title')}>{m.label}</p>
+                        <p className={selTxt(form.oauth_client_mode===m.id,'desc')}>{m.desc}</p>
+                      </button>
+                    ))}
+                  </div>
+                  <p className="text-[10px] mt-1.5 text-t3">Users authorize their own provider account either way.</p>
+                </div>
               <details open={!!form.oauth_client_id}>
                 <summary className="text-[11px] font-semibold cursor-pointer text-t3 flex items-center gap-1.5 list-none">▶ Manual credentials (only if auto-discovery fails)</summary>
                 <div className="mt-3 space-y-3 pl-3 border-l-2 border-border">
                   <p className="text-[10px] text-t3">Leave blank to use auto-discovery and dynamic registration. Required for providers like GitHub that don't support RFC 8414 metadata or dynamic client registration — create an OAuth App with the provider first, then fill in its Client ID/Secret and fixed authorize/token URLs below.</p>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div><label className={labelCls}>Client ID</label><input className={inputCls} value={form.oauth_client_id||''} onChange={set('oauth_client_id')} placeholder="optional" /></div>
-                    <div><label className={labelCls}>Client Secret</label><input className={inputCls} type="password" value={form.oauth_client_secret||''} onChange={set('oauth_client_secret')} placeholder={hasSecrets.oauth_client_secret ? '•••••••• (saved — leave blank to keep)' : 'optional'} /></div>
-                  </div>
+                  {form.oauth_client_mode==='shared' ? (
+                    <div className="grid grid-cols-2 gap-3">
+                      <div><label className={labelCls}>Client ID</label><input className={inputCls} value={form.oauth_client_id||''} onChange={set('oauth_client_id')} placeholder="optional" /></div>
+                      <div><label className={labelCls}>Client Secret</label><input className={inputCls} type="password" value={form.oauth_client_secret||''} onChange={set('oauth_client_secret')} placeholder={hasSecrets.oauth_client_secret ? '•••••••• (saved — leave blank to keep)' : 'optional'} /></div>
+                    </div>
+                  ) : (
+                    <p className="text-[10px] text-t3">Each member enters their client ID and secret in the portal. Authorization and token URLs remain deployment-wide settings.</p>
+                  )}
                   <div className="grid grid-cols-2 gap-3">
                     <div><label className={labelCls}>Authorization URL</label><input className={inputCls} value={form.oauth_auth_url||''} onChange={set('oauth_auth_url')} placeholder="https://github.com/login/oauth/authorize" /></div>
                     <div><label className={labelCls}>Token URL</label><input className={inputCls} value={form.oauth_token_url||''} onChange={set('oauth_token_url')} placeholder="https://github.com/login/oauth/access_token" /></div>
@@ -276,6 +303,7 @@ export default function ServerEdit() {
                   </div>
                 </div>
               </details>
+              </div>
             )}
 
             {/* Extra headers — additive to whatever the auth type above already

@@ -118,7 +118,7 @@ async def _start_existing_containers():
         from app.db.session import AsyncSessionLocal
         from app.models.connection import Connection
         from app.models.server import Server
-        from app.services.token_store import get_token
+        from app.services.token_store import get_token, get_credentials
         from app.core.encryption import decrypt_dict
         from app.services.stdio_bridge import wait_for_container
         from sqlalchemy import select
@@ -142,7 +142,8 @@ async def _start_existing_containers():
                     env = {k: v for k, v in decrypt_dict(server.auth_config or {}, context_prefix=f"server:{server.id}:auth_config").items() if v}
                 elif server.auth_mode.value == "per_user":
                     async with AsyncSessionLocal() as db:
-                        stored = await get_token(db, server.id, conn.user_id)
+                        env.update(await get_credentials(db, server.id, conn.user_id))
+                        stored = await get_token(db, server.id, conn.user_id) if not env else None
                     if stored and stored.access_token:
                         schema = server.user_config_schema or []
                         key = schema[0].get("key", "API_TOKEN") if schema else "API_TOKEN"
@@ -410,6 +411,7 @@ PUBLIC_OPENAPI_PATHS = {
     "/api/v1/registry",
     "/api/v1/registry/categories",
     "/api/v1/registry/{server_id}",
+    "/api/v1/registry/{server_id}/inspect",
     "/api/v1/oauth/{server_id}/authorize",
     "/api/v1/oauth/callback",
     "/api/v1/oauth/{server_id}/mcp-authorize",
@@ -508,6 +510,7 @@ DOC_GROUPS = [
             ("GET", "/api/v1/registry", "List registry entries."),
             ("GET", "/api/v1/registry/categories", "List registry categories."),
             ("GET", "/api/v1/registry/{server_id}", "Get one registry entry."),
+            ("POST", "/api/v1/registry/{server_id}/inspect", "Admin-only read-only MCP initialize and tool discovery for a remote entry."),
             ("GET", "/api/v1/oauth/{server_id}/authorize", "Start upstream OAuth for a server."),
             ("GET", "/api/v1/oauth/callback", "OAuth callback for configured providers."),
             ("GET", "/api/v1/oauth/{server_id}/mcp-authorize", "Start OAuth discovered from a remote MCP server."),

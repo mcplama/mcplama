@@ -72,6 +72,12 @@ async def get_config(db: AsyncSession = Depends(get_db), _: User = Depends(requi
     return cfg
 
 
+@gateway_config_router.get("/public")
+async def get_public_config():
+    """Expose the configured public gateway URL for connection setup screens."""
+    return {"gateway_url": settings.GATEWAY_URL.rstrip('/')}
+
+
 @gateway_config_router.post("", response_model=GatewayConfigOut)
 async def save_config(data: GatewayConfigIn, db: AsyncSession = Depends(get_db), _: User = Depends(require_admin)):
     result = await db.execute(select(GatewayConfig).where(GatewayConfig.id == 1))

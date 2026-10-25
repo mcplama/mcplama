@@ -3,7 +3,7 @@
 
 import re
 from datetime import datetime
-from typing import Optional, List
+from typing import Optional, List, Literal
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -70,6 +70,7 @@ class ServerCreate(BaseModel):
     # oauth
     oauth_client_id: Optional[str] = None
     oauth_client_secret: Optional[str] = None
+    oauth_client_mode: Literal["shared", "per_user"] = "shared"
     oauth_auth_url: Optional[str] = None
     oauth_token_url: Optional[str] = None
     oauth_scopes: Optional[str] = None
@@ -104,6 +105,7 @@ class ServerUpdate(BaseModel):
     remote_headers: Optional[List[dict]] = None
     oauth_client_id: Optional[str] = None
     oauth_client_secret: Optional[str] = None
+    oauth_client_mode: Optional[Literal["shared", "per_user"]] = None
     oauth_auth_url: Optional[str] = None
     oauth_token_url: Optional[str] = None
     oauth_scopes: Optional[str] = None
@@ -148,6 +150,7 @@ class ServerOut(BaseModel):
     has_auth_header_value: bool = False
     remote_header_keys: Optional[List[str]] = []
     oauth_client_id: Optional[str] = None
+    oauth_client_mode: Optional[str] = None
     has_oauth_client_secret: bool = False
     oauth_auth_url: Optional[str] = None
     oauth_token_url: Optional[str] = None
@@ -290,6 +293,7 @@ async def create_server(data: ServerCreate, db: AsyncSession = Depends(get_db), 
         icon=data.icon, color=data.color, logo_url=data.logo_url, category=data.category,
         remote_auth=data.remote_auth, auth_header_name=data.auth_header_name,
         oauth_client_id=data.oauth_client_id,
+        oauth_client_mode=data.oauth_client_mode or "shared",
         oauth_auth_url=data.oauth_auth_url, oauth_token_url=data.oauth_token_url,
         oauth_scopes=data.oauth_scopes, oauth_pkce=data.oauth_pkce if data.oauth_pkce is not None else True,
         oauth_token_auth=data.oauth_token_auth or "basic",
@@ -390,6 +394,13 @@ async def update_server(server_id: int, data: ServerUpdate, db: AsyncSession = D
         elif field == "remote_headers":
             value = _encrypt_remote_headers(server.id, value, existing=server.remote_headers)
         setattr(server, field, value)
+
+    # Per-user OAuth client mode must not retain an old shared client on the
+    # server row; each authorization flow will use the credentials saved by
+    # that user instead.
+    if data.oauth_client_mode == "per_user":
+        server.oauth_client_id = None
+        server.oauth_client_secret = None
 
     if server.is_enabled and server.auth_mode == AuthMode.shared and server.user_config_schema:
         cfg = decrypt_dict(server.auth_config or {}, context_prefix=f"server:{server.id}:auth_config")
@@ -494,7 +505,7 @@ async def test_connection(server_id: int, db: AsyncSession = Depends(get_db), us
     import asyncio, httpx, time, json as _json
     from app.services import container_manager as cm
     from app.services.stdio_bridge import wait_for_container
-    from app.services.token_store import get_token
+    from app.services.token_store import get_token, get_credentials
     from app.core.encryption import decrypt_dict
     from app.services.binary_detect import detect_missing_package
 
@@ -620,15 +631,17 @@ async def test_connection(server_id: int, db: AsyncSession = Depends(get_db), us
             if missing:
                 raise HTTPException(400, f"Missing required configuration: {', '.join(missing)}. Set it in server settings before testing.")
         elif server.auth_mode.value == "per_user":
-            stored = await get_token(db, server.id, user.id)
+            env.update(await get_credentials(db, server.id, user.id))
+            stored = await get_token(db, server.id, user.id) if not env else None
             token_val = stored.access_token if stored and stored.access_token else None
             if schema:
                 key = schema[0].get("key", "API_TOKEN")
-                if token_val:
+                if token_val and key not in env:
                     env[key] = token_val
-                elif schema[0].get("required", True):
-                    label = schema[0].get("label") or key
-                    raise HTTPException(400, f"Missing required credential: {label}. Save your personal token via the portal before testing.")
+                missing = [field.get("label") or field.get("key") for field in schema
+                           if field.get("required", True) and not env.get(field.get("key"))]
+                if missing:
+                    raise HTTPException(400, f"Missing required credentials: {', '.join(missing)}. Save them via the portal before testing.")
 
         # none-auth servers always use a shared container (same as connect.py)
         effective_auth_mode = "shared" if server.auth_mode.value == "none" else server.auth_mode.value
@@ -899,9 +912,19 @@ async def credentials_status(
     current_user: User = Depends(get_current_user),
 ):
     """Check if user has credentials saved for this server."""
-    from app.services.token_store import get_token
-    token = await get_token(db, server_id, current_user.id)
-    return {"has_credentials": token is not None and bool(token.access_token)}
+    from app.services.token_store import get_credentials
+    values = await get_credentials(db, server_id, current_user.id)
+    server = await db.get(Server, server_id)
+    if not server:
+        raise HTTPException(404, "Server not found")
+    if server.auth_mode != AuthMode.per_user:
+        return {"has_credentials": False}
+    schema = server.user_config_schema or [] if server else []
+    ready = all(
+        field.get("required", True) is False or bool(values.get(field.get("key")))
+        for field in schema
+    )
+    return {"has_credentials": ready}
 
 
 @router.post("/{server_id}/credentials", status_code=204)
@@ -912,31 +935,24 @@ async def save_user_credentials(
     current_user: User = Depends(get_current_user),
 ):
     """Save per-user credentials for a server (stored as encrypted server token)."""
-    from app.services.token_store import save_token
-    from app.core.encryption import encrypt
+    from app.services.token_store import save_credentials
     from app.services import container_manager as cm
 
     result = await db.execute(select(Server).where(Server.id == server_id))
     server = result.scalar_one_or_none()
     if not server:
         raise HTTPException(status_code=404, detail="Server not found")
+    if server.auth_mode != AuthMode.per_user:
+        raise HTTPException(400, "This server does not accept per-user credentials")
 
-    # Store first credential value as access_token
     schema = server.user_config_schema or []
     if not schema:
         raise HTTPException(400, "This server has no user credential schema")
-
-    primary_key = schema[0].get("key")
-    primary_value = credentials.get(primary_key)
-    if not primary_value:
-        raise HTTPException(400, f"Missing required credential: {primary_key}")
-
-    await save_token(
-        db=db,
-        server_id=server_id,
-        user_id=current_user.id,
-        access_token=primary_value,
-    )
+    missing = [field.get("label") or field.get("key") for field in schema
+               if field.get("required", True) and not str(credentials.get(field.get("key")) or "").strip()]
+    if missing:
+        raise HTTPException(400, f"Missing required credentials: {', '.join(missing)}")
+    await save_credentials(db, server_id, current_user.id, credentials)
 
     # The per-user container (if any) already has the old credential baked
     # into its env — npx/uvx/docker processes only read env at start, so a

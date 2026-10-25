@@ -3,7 +3,7 @@
 
 from datetime import datetime
 from typing import Optional
-from sqlalchemy import String, Text, DateTime, Integer, UniqueConstraint
+from sqlalchemy import String, Text, DateTime, Integer, UniqueConstraint, JSON
 from sqlalchemy.orm import Mapped, mapped_column
 from app.db.session import Base
 
@@ -21,6 +21,7 @@ class ServerToken(Base):
     token_type: Mapped[Optional[str]] = mapped_column(String(32), default="Bearer")
     scope: Mapped[Optional[str]] = mapped_column(String(512), nullable=True)
     expires_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    credentials: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
 
     is_oauth: Mapped[bool] = mapped_column(default=False)
     connected_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)

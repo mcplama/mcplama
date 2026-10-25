@@ -148,7 +148,7 @@ async def create_connection(data: ConnectionCreate, db: AsyncSession = Depends(g
 async def _start_container_bg(server: Server, user_id: int):
     """Start container in background after connection token is generated."""
     from app.services import container_manager as cm
-    from app.services.token_store import get_token
+    from app.services.token_store import get_token, get_credentials
     from app.core.encryption import decrypt_dict
     from app.db.session import AsyncSessionLocal
     import logging
@@ -162,7 +162,8 @@ async def _start_container_bg(server: Server, user_id: int):
             logger.info(f"Shared env keys: {list(env.keys())}")
         elif server.auth_mode.value == "per_user":
             async with AsyncSessionLocal() as db:
-                stored = await get_token(db, server.id, user_id)
+                env.update(await get_credentials(db, server.id, user_id))
+                stored = await get_token(db, server.id, user_id) if not env else None
             if stored and stored.access_token:
                 schema = server.user_config_schema or []
                 key = schema[0].get("key", "API_TOKEN") if schema else "API_TOKEN"

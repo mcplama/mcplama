@@ -53,6 +53,7 @@ class Server(Base):
     # OAuth 2.0 fields
     oauth_client_id:    Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
     oauth_client_secret:Mapped[Optional[str]] = mapped_column(Text, nullable=True)        # should be encrypted
+    oauth_client_mode:  Mapped[Optional[str]] = mapped_column(String(16), nullable=True, default="shared")
     oauth_auth_url:     Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
     oauth_token_url:    Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
     oauth_scopes:       Mapped[Optional[str]] = mapped_column(String(500), nullable=True)

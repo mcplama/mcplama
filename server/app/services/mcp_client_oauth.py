@@ -224,6 +224,7 @@ async def get_or_register_client(
     mcp_url: str,
     oauth_meta: dict,
     callback_uri: str,
+    client_override: Optional[dict] = None,
 ) -> dict:
     """
     Register MCPlama as a client with the upstream OAuth server, or return the
@@ -242,6 +243,9 @@ async def get_or_register_client(
     """
     from app.models.server import Server
     from app.core.encryption import encrypt, decrypt
+
+    if client_override and client_override.get("client_id"):
+        return client_override
 
     server = await db.get(Server, server_id)
     if server and server.oauth_client_id:
@@ -374,7 +378,6 @@ async def save_upstream_token(
             and_(
                 ServerToken.server_id == server_id,
                 ServerToken.user_id == user_id,
-                ServerToken.token_type == "mcp_upstream",
             )
         )
     )
@@ -384,6 +387,7 @@ async def save_upstream_token(
     enc_refresh = encrypt(refresh_token, f"server_token:{server_id}:{user_id}:mcp_upstream:refresh_token") if refresh_token else None
 
     if existing:
+        existing.token_type = "mcp_upstream"
         existing.access_token = enc_access
         existing.refresh_token = enc_refresh
         existing.expires_at = expires_at
@@ -407,6 +411,7 @@ async def _refresh_upstream_token(db, token, server_id: int) -> Optional[str]:
     """Try to refresh an upstream MCP OAuth token."""
     from app.models.server import Server
     from app.core.encryption import decrypt, encrypt
+    from app.services.token_store import get_credentials
 
     server = await db.get(Server, server_id)
     if not server or not server.url:
@@ -421,7 +426,16 @@ async def _refresh_upstream_token(db, token, server_id: int) -> Optional[str]:
     # in-memory cache and fell back to {"client_id": "mcplama"} — a client the
     # upstream never issued — so after any restart every refresh was rejected
     # and the user was silently forced to re-authorize.
-    client_creds = await load_client_creds(db, server_id)
+    client_creds = None
+    if server.oauth_client_mode == "per_user" and token.user_id is not None:
+        user_creds = await get_credentials(db, server_id, token.user_id)
+        if user_creds.get("oauth_client_id"):
+            client_creds = {
+                "client_id": user_creds["oauth_client_id"],
+                "client_secret": user_creds.get("oauth_client_secret"),
+            }
+    else:
+        client_creds = await load_client_creds(db, server_id)
     if not client_creds:
         logger.warning(
             f"No stored client registration for server_id={server_id}; "

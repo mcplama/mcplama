@@ -4,7 +4,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import {
-  ArrowLeft, ExternalLink, RefreshCw, Trash2, Link2, Link2Off, KeyRound, XCircle, Zap,
+  ArrowLeft, ExternalLink, RefreshCw, Trash2, Link2, Link2Off, KeyRound, XCircle, Zap, Terminal,
   CheckCircle, Eye, EyeOff, Globe, Edit2
 } from 'lucide-react'
 import api from '../lib/api'
@@ -46,8 +46,32 @@ function StepDot({ num, done = false, disabled = false }) {
   )
 }
 
+function OAuthGatewayNotice({ server }) {
+  const [gatewayUrl, setGatewayUrl] = useState('')
+
+  useEffect(() => {
+    api.get('/gateway/config/public')
+      .then(r => setGatewayUrl(String(r.data?.gateway_url || '').replace(/\/+$/, '')))
+      .catch(() => setGatewayUrl(window.location.origin))
+  }, [])
+
+  const base = gatewayUrl || window.location.origin
+  const callbackPath = server.runtime === 'remote' ? 'mcp-callback' : 'callback'
+  const redirectUri = `${base}/api/v1/oauth/${callbackPath}`
+
+  return (
+    <div className="rounded-xl border border-brand-200 bg-brand-50 p-4 dark:border-brand-500/30 dark:bg-brand-500/10">
+      <p className="text-sm font-semibold text-gray-800 dark:text-white/90">Google OAuth redirect setup</p>
+      <p className="mt-1 text-xs text-gray-600 dark:text-gray-300">Register this exact redirect URI in your Google OAuth client before connecting:</p>
+      <code className="mt-2 block break-all rounded-lg bg-white/70 px-3 py-2 font-mono text-xs text-gray-800 dark:bg-black/20 dark:text-gray-100">{redirectUri}</code>
+      <p className="mt-3 text-xs text-gray-600 dark:text-gray-300">MCPlama gateway URL: <span className="break-all font-mono text-gray-800 dark:text-gray-100">{base}</span></p>
+    </div>
+  )
+}
+
 function OAuthPanel({ server, onRefresh }) {
   const [status, setStatus] = useState(null)
+  const [gatewayUrl, setGatewayUrl] = useState('')
   const [showForm, setShowForm] = useState(false)
   const [creds, setCreds] = useState({ client_id: '', client_secret: '' })
   const [showSecret, setShowSecret] = useState(false)
@@ -62,6 +86,12 @@ function OAuthPanel({ server, onRefresh }) {
   }, [server.id])
 
   useEffect(() => { loadStatus() }, [loadStatus])
+
+  useEffect(() => {
+    api.get('/gateway/config/public')
+      .then(r => setGatewayUrl(String(r.data?.gateway_url || '').replace(/\/+$/, '')))
+      .catch(() => setGatewayUrl(window.location.origin))
+  }, [])
 
   if (!status || status.status === 'not_required' || status.status === 'not_configured') return null
 
@@ -137,8 +167,15 @@ function OAuthPanel({ server, onRefresh }) {
 
       {(status.status === 'no_credentials' || showForm) && (
         <div className="space-y-3 rounded-xl p-4 border border-gray-200 dark:border-gray-800 bg-white dark:bg-white/[0.03]">
-          <Alert variant="info" title="Redirect URI"
-            message={`Set redirect URI to: ${window.location.origin}/api/v1/oauth/callback`} />
+          <div className="rounded-lg border border-brand-200 bg-brand-50 p-3 dark:border-brand-500/30 dark:bg-brand-500/10">
+            <p className="text-xs font-semibold text-gray-800 dark:text-white/90">Use this MCPlama gateway URL when connecting</p>
+            <p className="mt-1 break-all font-mono text-xs text-gray-700 dark:text-gray-200">{gatewayUrl || window.location.origin}</p>
+            <p className="mt-3 text-xs font-semibold text-gray-800 dark:text-white/90">Add this authorized redirect URI to your OAuth client</p>
+            <p className="mt-1 break-all font-mono text-xs text-gray-700 dark:text-gray-200">
+              {gatewayUrl || window.location.origin}/api/v1/oauth/{server.runtime === 'remote' ? 'mcp-callback' : 'callback'}
+            </p>
+            <p className="mt-2 text-xs text-gray-600 dark:text-gray-300">The redirect URI must match exactly in your OAuth provider settings.</p>
+          </div>
           <Input label="Client ID" value={creds.client_id}
             onChange={e => setCreds(c => ({ ...c, client_id: e.target.value }))} placeholder="client_id_..." />
           <Input label="Client Secret" type={showSecret ? 'text' : 'password'} value={creds.client_secret}
@@ -216,6 +253,7 @@ const CLIENT_TABS = [
   { id: 'claude',      label: 'Claude Desktop', logo: '/icons/claude.svg' },
   { id: 'claude-code', label: 'Claude Code',    logo: '/icons/claude-code.svg' },
   { id: 'codex',       label: 'Codex',          logo: '/icons/codex-dark.svg' },
+  { id: 'opencode',   label: 'OpenCode',       icon: Terminal },
   { id: 'vscode',      label: 'VS Code',        logo: '/icons/visual-studio-code.svg' },
   { id: 'cursor',      label: 'Cursor',         logo: '/icons/cursor.svg' },
   { id: 'api',         label: 'API / curl',     icon: Globe },
@@ -259,11 +297,23 @@ function ConnectTab({ server, connections, onCreateConnection }) {
   const mainConn = connections[0]
   const proxyUrl = mainConn?.mcp_url || null
 
+  useEffect(() => {
+    if (!needsCreds) return
+    api.get(`/servers/${server.id}/credentials/status`)
+      .then(({ data }) => setCredsSaved(Boolean(data.has_credentials)))
+      .catch(() => setCredsSaved(false))
+  }, [server.id, needsCreds])
+
   const claudeConfig = proxyUrl ? JSON.stringify({ mcpServers: { [server.slug]: { url: proxyUrl } } }, null, 2) : null
   const claudeCodeConfig = proxyUrl ? JSON.stringify({ mcpServers: { [server.slug]: { type: 'http', url: proxyUrl } } }, null, 2) : null
   const vscodeConfig = proxyUrl ? JSON.stringify({ servers: { [server.slug]: { url: proxyUrl } } }, null, 2) : null
   const claudeCodeCliCmd = proxyUrl ? `claude mcp add --transport http ${server.slug} ${proxyUrl}` : null
   const codexCliCmd = proxyUrl ? `codex mcp add ${server.slug} --url ${proxyUrl}` : null
+  const opencodeCliCmd = proxyUrl ? `opencode mcp add ${server.slug} --url ${proxyUrl}` : null
+  const opencodeConfig = proxyUrl ? JSON.stringify({
+    "$schema": "https://opencode.ai/config.json",
+    mcp: { servers: { [server.slug]: { type: 'remote', url: proxyUrl } } },
+  }, null, 2) : null
 
   const saveCreds = async () => {
     setSavingCreds(true)
@@ -342,6 +392,7 @@ function ConnectTab({ server, connections, onCreateConnection }) {
   if (mainConn) {
     return (
       <div className="p-6 space-y-5">
+        {isRemoteOAuth && <OAuthGatewayNotice server={server} />}
         <Alert variant="success" title="Connection token active" message={proxyUrl} />
 
         <Tabs tabs={CLIENT_TABS} active={client} onChange={setClient} />
@@ -415,6 +466,32 @@ function ConnectTab({ server, connections, onCreateConnection }) {
           </div>
         )}
 
+        {client === 'opencode' && opencodeCliCmd && opencodeConfig && (
+          <div className="space-y-4">
+            <Alert variant="info" title="Add OpenCode MCP server"
+              message="Run the command in your project to add this remote server. OpenCode supports OAuth for remote MCP servers; use /mcps in OpenCode if it asks you to sign in." />
+            {stepItems([
+              {
+                step: '1', title: 'Add with the CLI',
+                content: <CodeBlock>{opencodeCliCmd}</CodeBlock>,
+              },
+              {
+                step: '2', title: 'Verify the connection',
+                content: (
+                  <div className="space-y-2">
+                    <CodeBlock>opencode mcp list</CodeBlock>
+                    <p className="text-xs text-gray-400">If it needs authentication, open OpenCode and run <code className="font-mono">/mcps</code>.</p>
+                  </div>
+                ),
+              },
+              {
+                step: '3', title: 'Or add manually to opencode.json',
+                content: <CodeEditor value={opencodeConfig} />,
+              },
+            ])}
+          </div>
+        )}
+
         {client === 'vscode' && vscodeConfig && (
           <div className="space-y-4">
             <Alert variant="info" title="VS Code 1.99+ required"
@@ -478,7 +555,6 @@ function ConnectTab({ server, connections, onCreateConnection }) {
 
   return (
     <div className="p-6 space-y-5">
-
       {/* Step 1 — Credentials (per-user only) */}
       {needsCreds && (
         <div className="space-y-4">
@@ -511,7 +587,7 @@ function ConnectTab({ server, connections, onCreateConnection }) {
                 </div>
               ))}
               <Button variant="primary" size="sm"
-                disabled={savingCreds || schema.some(f => !creds[f.key])}
+                disabled={savingCreds || schema.some(f => f.required !== false && !creds[f.key])}
                 startIcon={savingCreds ? <Spinner size={12} /> : <KeyRound size={14} />}
                 onClick={saveCreds}>
                 Save credentials
@@ -529,6 +605,7 @@ function ConnectTab({ server, connections, onCreateConnection }) {
         </div>
       )}
 
+      {isRemoteOAuth && <OAuthGatewayNotice server={server} />}
       {needsCreds && <div className="border-t border-gray-100 dark:border-gray-800" />}
 
       {/* Step 2 — Test connection */}
@@ -848,7 +925,13 @@ export default function ServerDetail() {
                 )}
                 <div className="grid grid-cols-2 gap-3">
                   <StatBox label="Auth type"   value={server.auth_type} />
-                  <StatBox label="Auth mode"   value={server.auth_mode} />
+                  <StatBox
+                    label={server.runtime === 'remote' && server.remote_auth === 'oauth' ? 'OAuth account access' : 'Auth mode'}
+                    value={server.runtime === 'remote' && server.remote_auth === 'oauth' ? 'Per user' : server.auth_mode}
+                  />
+                  {server.runtime === 'remote' && server.remote_auth === 'oauth' && (
+                    <StatBox label="OAuth app credentials" value={server.oauth_client_mode === 'per_user' ? 'Per user' : 'Shared'} />
+                  )}
                   <StatBox label="Calls today" value={server.calls_today} />
                   <StatBox label="Avg latency" value={server.avg_latency_ms ? `${server.avg_latency_ms}ms` : null} />
                   <StatBox label="Error rate"  value={`${server.error_rate ?? 0}%`} />
@@ -931,7 +1014,11 @@ export default function ServerDetail() {
                       ['URL',       server.url],
                       ['Slug',      server.slug],
                       ['Auth type', server.auth_type],
-                      ['Auth mode', server.auth_mode],
+                      [server.runtime === 'remote' && server.remote_auth === 'oauth' ? 'OAuth account access' : 'Auth mode',
+                        server.runtime === 'remote' && server.remote_auth === 'oauth' ? 'Per user' : server.auth_mode],
+                      ...(server.runtime === 'remote' && server.remote_auth === 'oauth'
+                        ? [['OAuth app credentials', server.oauth_client_mode === 'per_user' ? 'Per user' : 'Shared']]
+                        : []),
                       ['Runtime',   server.runtime],
                     ].map(([k, v]) => (
                       <div key={k} className="flex justify-between items-center rounded-xl px-4 py-3 border border-gray-200 dark:border-gray-800 bg-white dark:bg-white/[0.03]">

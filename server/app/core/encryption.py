@@ -64,16 +64,18 @@ def decrypt(ciphertext: str, context: str = "") -> str:
 
 
 def encrypt_dict(d: dict, context_prefix: str = "") -> dict:
-    sensitive = {"token", "access_token", "refresh_token", "client_secret", "password"}
+    sensitive = {"token", "access_token", "refresh_token", "client_secret", "password", "api_key", "private_key"}
     return {
-        k: encrypt(v, f"{context_prefix}:{k}" if context_prefix else "") if k in sensitive and isinstance(v, str) and v else v
+        k: encrypt(v, f"{context_prefix}:{k}" if context_prefix else "")
+        if (k.lower() in sensitive or any(part in k.lower() for part in ("token", "secret", "password", "credential", "_key", "api_key", "private_key"))) and isinstance(v, str) and v else v
         for k, v in d.items()
     }
 
 
 def decrypt_dict(d: dict, context_prefix: str = "") -> dict:
-    sensitive = {"token", "access_token", "refresh_token", "client_secret", "password"}
+    sensitive = {"token", "access_token", "refresh_token", "client_secret", "password", "api_key", "private_key"}
     return {
-        k: decrypt(v, f"{context_prefix}:{k}" if context_prefix else "") if k in sensitive and isinstance(v, str) and v else v
+        k: decrypt(v, f"{context_prefix}:{k}" if context_prefix else "")
+        if (k.lower() in sensitive or any(part in k.lower() for part in ("token", "secret", "password", "credential", "_key", "api_key", "private_key"))) and isinstance(v, str) and v else v
         for k, v in d.items()
     }

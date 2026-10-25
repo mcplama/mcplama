@@ -41,6 +41,27 @@ const CLIENTS = [
     instructions: 'Run this in your terminal, or use "/mcp" inside Claude Code to add it interactively.',
   },
   {
+    id: 'codex',
+    name: 'Codex',
+    icon: <SquareTerminal size={14} />,
+    color: '#10A37F',
+    description: 'Codex CLI',
+    getConfig: (slug, url) => `codex mcp add ${slug} --url ${url}`,
+    instructions: 'Run this command in your terminal. Verify the server with "codex mcp list".',
+  },
+  {
+    id: 'opencode',
+    name: 'OpenCode',
+    icon: <Code2 size={14} />,
+    color: '#111827',
+    description: 'opencode.json or opencode.jsonc',
+    getConfig: (slug, url) => JSON.stringify({
+      "$schema": "https://opencode.ai/config.json",
+      mcp: { servers: { [slug]: { type: 'remote', url } } },
+    }, null, 2),
+    instructions: 'Add this under mcp.servers in your OpenCode config. Run "/mcps" in OpenCode to review the connection and sign in if prompted.',
+  },
+  {
     id: 'cursor',
     name: 'Cursor',
     icon: <Terminal size={14} />,
@@ -251,14 +272,14 @@ function UpdateCredsSection({ serverId, schema, onSaved }) {
               />
             </div>
           ))}
-          <button onClick={save} disabled={saving || schema.some(f => !creds[f.key])}
+          <button onClick={save} disabled={saving || schema.some(f => f.required !== false && !creds[f.key])}
             style={{
               padding: '9px', borderRadius: 9, fontSize: 12, fontWeight: 700,
               background: saved ? 'rgba(50,213,131,0.10)' : 'rgba(117,146,255,0.12)',
               color: saved ? 'var(--ok)' : 'var(--accent)',
               border: `1px solid ${saved ? 'rgba(50,213,131,0.25)' : 'rgba(117,146,255,0.25)'}`,
-              cursor: (saving || schema.some(f => !creds[f.key])) ? 'not-allowed' : 'pointer',
-              opacity: (saving || schema.some(f => !creds[f.key])) ? 0.5 : 1,
+              cursor: (saving || schema.some(f => f.required !== false && !creds[f.key])) ? 'not-allowed' : 'pointer',
+              opacity: (saving || schema.some(f => f.required !== false && !creds[f.key])) ? 0.5 : 1,
               transition: 'all 0.15s'
             }}>
             {saved ? '✓ Saved!' : saving ? 'Saving…' : 'Update credentials'}
@@ -285,6 +306,9 @@ function ServerCard({ server, connection, onConnect, requestStatus, isRequesting
   const hasConnection = !!connection
   const isPerUser = server.auth_mode === 'per_user'
   const isShared = server.auth_mode === 'shared' || server.auth_mode === 'none'
+  const credentialsRequired = isPerUser && schema.length > 0
+  const credentialsConfigured = !credentialsRequired || (credsChecked && credsSaved)
+  const canShowConnection = hasConnection && credentialsConfigured
   const connUrl = connection?.mcp_url
   // Show cred form when per_user + schema exists + creds not yet saved.
   // Shown even when hasConnection so users can update credentials.
@@ -375,11 +399,15 @@ function ServerCard({ server, connection, onConnect, requestStatus, isRequesting
   const client = CLIENTS.find(c => c.id === activeClient) || CLIENTS[0]
 
   // ── Status chip in header
-  const statusChip = hasConnection
+  const statusChip = canShowConnection
     ? <Badge color={'var(--ok)'} bg={'rgba(50,213,131,0.10)'} border={'rgba(50,213,131,0.25)'}>
       <span style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--ok)', display: 'inline-block' }} />
       Connected
     </Badge>
+    : hasConnection && credentialsRequired && !credsReady
+      ? <Badge color={'var(--t3)'} bg="rgba(74,74,88,0.15)" border="rgba(74,74,88,0.3)">Checking credentials</Badge>
+      : hasConnection && credentialsRequired && !credsSaved
+        ? <Badge color={'var(--warn)'} bg={'rgba(253,176,34,0.10)'} border={'rgba(253,176,34,0.25)'}>Credentials required</Badge>
     : requestStatus === 'pending'
       ? <Badge color={'var(--warn)'} bg={'rgba(253,176,34,0.10)'} border={'rgba(253,176,34,0.25)'}>Pending</Badge>
       : requestStatus === 'approved' || isShared
@@ -390,8 +418,8 @@ function ServerCard({ server, connection, onConnect, requestStatus, isRequesting
     <div className="portal-server-card" style={{
       background: 'var(--card)', border: `1px solid ${'var(--border)'}`, borderRadius: 16,
       display: 'flex', flexDirection: 'column', transition: 'border-color 0.2s, box-shadow 0.2s, transform 0.2s',
-      overflow: 'hidden', minWidth: 0, height: '100%',
-      ...(hasConnection ? { borderColor: 'rgba(50,213,131,0.2)' } : {})
+      overflow: 'hidden', minWidth: 0, minHeight: '100%',
+      ...(canShowConnection ? { borderColor: 'rgba(50,213,131,0.2)' } : {})
     }}>
 
       {/* ── Card header ── */}
@@ -458,14 +486,16 @@ function ServerCard({ server, connection, onConnect, requestStatus, isRequesting
         ) : (
           <>
             {/* ── OAUTH REQUIRED ── */}
-            {server.remote_auth === 'oauth' && !hasOauthToken && (
+            {server.remote_auth === 'oauth' && !hasOauthToken && (!isPerUser || schema.length === 0 || credsSaved) && (
               <div style={{ padding: '14px 16px', borderRadius: 12, background: 'rgba(253,176,34,0.10)', border: `1px solid ${'rgba(253,176,34,0.25)'}` }}>
                 <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', marginBottom: 10 }}>
                   <Lock size={13} style={{ color: 'var(--warn)', marginTop: 1, flexShrink: 0 }} />
                   <div>
-                    <div style={{ color: 'var(--warn)', fontSize: 12, fontWeight: 600, marginBottom: 2 }}>Authorization required</div>
+                    <div style={{ color: 'var(--warn)', fontSize: 12, fontWeight: 600, marginBottom: 2 }}>Sign in to {server.name}</div>
                     <div style={{ color: 'var(--t2)', fontSize: 11, lineHeight: 1.5 }}>
-                      Sign in with {server.name} before connecting your AI client.
+                      {server.runtime === 'remote'
+                        ? `Authorize your ${server.name} account with the provider. MCPlama stores your token securely and uses it when proxying your requests.`
+                        : `Authorize with ${server.name} so MCPlama can use your account when this server runs.`}
                     </div>
                   </div>
                 </div>
@@ -477,9 +507,13 @@ function ServerCard({ server, connection, onConnect, requestStatus, isRequesting
                     cursor: authorizing ? 'not-allowed' : 'pointer', opacity: authorizing ? 0.7 : 1
                   }}>
                   <ExternalLink size={11} />
-                  {authorizing ? `Waiting for authorization…` : `Authorize with ${server.name}`}
+                    {authorizing ? `Waiting for authorization…` : `Authorize with ${server.name}`}
                 </button>
               </div>
+            )}
+
+            {credentialsRequired && !credsChecked && (
+              <div style={{ color: 'var(--t3)', fontSize: 12 }}>Checking your saved credentials…</div>
             )}
 
             {server.remote_auth === 'oauth' && hasOauthToken && !hasConnection && (
@@ -540,13 +574,13 @@ function ServerCard({ server, connection, onConnect, requestStatus, isRequesting
 
                 <button
                   onClick={saveCreds}
-                  disabled={savingCreds || schema.some(f => !creds[f.key])}
+                  disabled={savingCreds || schema.some(f => f.required !== false && !creds[f.key])}
                   style={{
                     padding: '10px', borderRadius: 10, fontSize: 13, fontWeight: 700,
-                    background: schema.some(f => !creds[f.key]) ? 'rgba(117,146,255,0.06)' : 'rgba(117,146,255,0.12)',
-                    color: schema.some(f => !creds[f.key]) ? 'var(--t3)' : 'var(--accent)',
-                    border: `1px solid ${schema.some(f => !creds[f.key]) ? 'var(--border)' : 'rgba(117,146,255,0.25)'}`,
-                    cursor: (savingCreds || schema.some(f => !creds[f.key])) ? 'not-allowed' : 'pointer',
+                    background: schema.some(f => f.required !== false && !creds[f.key]) ? 'rgba(117,146,255,0.06)' : 'rgba(117,146,255,0.12)',
+                    color: schema.some(f => f.required !== false && !creds[f.key]) ? 'var(--t3)' : 'var(--accent)',
+                    border: `1px solid ${schema.some(f => f.required !== false && !creds[f.key]) ? 'var(--border)' : 'rgba(117,146,255,0.25)'}`,
+                    cursor: (savingCreds || schema.some(f => f.required !== false && !creds[f.key])) ? 'not-allowed' : 'pointer',
                     transition: 'all 0.15s'
                   }}>
                   {savingCreds ? 'Saving…' : 'Save & continue →'}
@@ -611,7 +645,7 @@ function ServerCard({ server, connection, onConnect, requestStatus, isRequesting
             )}
 
             {/* ── UPDATE CREDENTIALS (per_user servers only, shown when already connected) ── */}
-            {isPerUser && schema.length > 0 && hasConnection && (
+            {isPerUser && schema.length > 0 && canShowConnection && (
               <UpdateCredsSection
                 serverId={server.id}
                 schema={schema}
@@ -620,8 +654,13 @@ function ServerCard({ server, connection, onConnect, requestStatus, isRequesting
             )}
 
             {/* ── CONNECTED — show URL + client configs ── */}
-            {hasConnection && (
+            {canShowConnection && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                {server.runtime === 'remote' && server.remote_auth === 'oauth' && !hasOauthToken && (
+                  <div style={{ padding: '10px 14px', borderRadius: 10, background: 'rgba(117,146,255,0.08)', border: `1px solid ${'rgba(117,146,255,0.2)'}`, color: 'var(--t2)', fontSize: 12, lineHeight: 1.5 }}>
+                    Your account is authorized. MCPlama will use your account token when proxying requests to this server.
+                  </div>
+                )}
                 {/* URL row */}
                 <div style={{ padding: '12px 14px', borderRadius: 11, background: 'var(--bg)', border: `1px solid ${'var(--border)'}` }}>
                   <div style={{
@@ -958,7 +997,7 @@ export default function Portal() {
             onMouseDown={event => { if (event.target === event.currentTarget) setSelectedServerId(null) }}
             style={{
               position: 'fixed', inset: 0, zIndex: 100, background: 'rgba(0,0,0,0.52)',
-              backdropFilter: 'blur(3px)', display: 'flex', justifyContent: 'flex-start',
+              backdropFilter: 'blur(3px)', display: 'flex', justifyContent: 'flex-end',
             }}
           >
             <aside
@@ -967,8 +1006,8 @@ export default function Portal() {
               aria-label={`${selectedServer.name} details`}
               className="portal-details-panel"
               style={{
-                width: 'min(520px, 94vw)', height: '100%', background: 'var(--surface)',
-                borderRight: '1px solid var(--border)', boxShadow: '20px 0 50px rgba(0,0,0,0.25)',
+                width: 'min(680px, 96vw)', height: '100dvh', minHeight: 0, overflow: 'hidden', background: 'var(--surface)',
+                borderLeft: '1px solid var(--border)', boxShadow: '-20px 0 50px rgba(0,0,0,0.25)',
                 display: 'flex', flexDirection: 'column',
               }}
             >
@@ -992,7 +1031,7 @@ export default function Portal() {
                   <X size={16} />
                 </button>
               </div>
-              <div style={{ flex: 1, overflowY: 'auto', padding: 16 }}>
+              <div style={{ flex: '1 1 auto', minHeight: 0, overflowY: 'auto', overscrollBehavior: 'contain', WebkitOverflowScrolling: 'touch', padding: 20 }}>
                 <ServerCard
                   server={selectedServer}
                   connection={getConnection(selectedServer.id)}
@@ -1089,7 +1128,7 @@ export default function Portal() {
           outline: 2px solid var(--accent);
           outline-offset: 2px;
         }
-        @keyframes portalPanelIn { from { transform: translateX(-100%); } to { transform: translateX(0); } }
+        @keyframes portalPanelIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
         .portal-details-panel { animation: portalPanelIn 0.2s ease-out; }
       `}</style>
     </div>
