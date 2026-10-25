@@ -2,8 +2,8 @@
 /* SPDX-License-Identifier: AGPL-3.0-or-later */
 
 import { useState, useEffect, useCallback } from 'react'
-import { Bug, ChevronRight, Mail, Plus } from 'lucide-react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Bug, ChevronRight, Download, ExternalLink, Plus } from 'lucide-react'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import api from '../lib/api'
 import { Alert, Modal, ModalHeader, Spinner, Toggle, EmptyState, StatusDot } from '../components/ui'
 import { Paginator } from '../components/ui/Paginator'
@@ -22,12 +22,19 @@ export default function Servers() {
   const [reportLoading, setReportLoading] = useState(false)
   const [reportError, setReportError] = useState('')
   const [search, setSearch] = useState('')
+  const location = useLocation()
   const navigate = useNavigate()
 
   const load = useCallback(() =>
     api.get('/servers?limit=200').then(r => setServers(r.data)).finally(() => setLoading(false))
   , [])
   useEffect(() => { load() }, [load])
+  useEffect(() => {
+    if (!location.state?.openBugReport) return
+    setReportError('')
+    setShowReport(true)
+    navigate(location.pathname, { replace: true, state: null })
+  }, [location.key, location.pathname, location.state, navigate])
 
   const filtered = servers.filter(s =>
     !search ||
@@ -41,42 +48,50 @@ export default function Servers() {
     setServers(sv => sv.map(s => s.id === id ? { ...s, is_enabled: enabled } : s))
   }
 
-  const openBugReport = async (includeLogs) => {
+  const downloadDiagnosticLogs = async () => {
     setReportLoading(true)
     setReportError('')
-
-    let logSection = 'Recent activity logs were not included.'
-    if (includeLogs) {
-      try {
-        const response = await api.get('/diagnostics/logs')
-        const data = response.data || {}
-        const backend = (data.backend_logs || []).join('\n') || 'No backend application logs were available.'
-        const containers = (data.containers || []).map(container =>
-          `--- ${container.name} (${container.image || 'unknown image'}) ---\n${container.logs || 'No container logs were available.'}`
-        ).join('\n') || 'No running MCP container logs were available.'
-        logSection = `Diagnostic logs generated at ${data.generated_at || 'unknown time'}:\n\n[Backend application logs]\n${backend}\n\n[Running MCP container logs]\n${containers}`
-      } catch {
-        setReportError('We could not load the activity logs. You can still report the bug without them.')
-        setReportLoading(false)
-        return
-      }
+    try {
+      const { data = {} } = await api.get('/diagnostics/logs')
+      const backend = (data.backend_logs || []).join('\n') || 'No backend application logs were available.'
+      const containers = (data.containers || []).map(container =>
+        `--- ${container.name} (${container.image || 'unknown image'}) ---\n${container.logs || 'No container logs were available.'}`
+      ).join('\n\n') || 'No running MCP container logs were available.'
+      const content = [
+        `MCPlama diagnostic logs generated at ${data.generated_at || 'unknown time'}`,
+        `Connected servers: ${servers.length}`,
+        '',
+        '[Backend application logs]',
+        backend,
+        '',
+        '[Running MCP container logs]',
+        containers,
+      ].join('\n')
+      const blobUrl = URL.createObjectURL(new Blob([content], { type: 'text/plain;charset=utf-8' }))
+      const link = document.createElement('a')
+      link.href = blobUrl
+      link.download = `mcplama-diagnostics-${new Date().toISOString().slice(0, 10)}.txt`
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      window.setTimeout(() => URL.revokeObjectURL(blobUrl), 1000)
+    } catch (error) {
+      setReportError(error.response?.data?.detail || 'Could not download diagnostic logs. You can still report the bug without them.')
+    } finally {
+      setReportLoading(false)
     }
-
-    const body = [
-      'Hi MCPlama support,',
-      '',
-      'I would like to report a bug:',
-      '',
-      '[Please describe what happened and how to reproduce it]',
-      '',
-      `App: MCPlama\nConnected servers: ${servers.length}`,
-      '',
-      logSection,
-    ].join('\n')
-    window.location.href = `mailto:support@mcplama.com?subject=${encodeURIComponent('MCPlama bug report')}&body=${encodeURIComponent(body)}`
-    setReportLoading(false)
-    setShowReport(false)
   }
+
+  const issueBody = [
+    '### What happened?',
+    '[Describe the issue and the steps to reproduce it.]',
+    '',
+    `MCPlama connected servers: ${servers.length}`,
+    '',
+    '### Diagnostic logs',
+    'Attach the downloaded MCPlama diagnostic log file if available.',
+  ].join('\n')
+  const issueUrl = `https://github.com/mcplama/mcplama/issues/new?title=${encodeURIComponent('Bug report')}&body=${encodeURIComponent(issueBody)}`
 
   const from = filtered.length === 0 ? 0 : (page - 1) * 20 + 1
   const to   = Math.min(page * 20, total)
@@ -268,21 +283,21 @@ export default function Servers() {
         <Modal onClose={() => !reportLoading && setShowReport(false)} width="max-w-lg">
           <ModalHeader
             title="Report a bug"
-            subtitle="Send a message to support@mcplama.com"
+            subtitle="Open an issue on GitHub"
             onClose={() => !reportLoading && setShowReport(false)}
           />
           <div className="space-y-4 px-6 py-5">
             <p className="text-sm leading-relaxed text-t2">
-              Would you like to include recent application, backend, and MCP container debug logs? They can help us diagnose the problem. Logs are bounded and credential-like values are redacted, but please review the email before sending.
+              Describe the problem in a GitHub issue. You can also download recent application, backend, and MCP container logs to attach. Logs are bounded and credential-like values are redacted; review the file before sharing it.
             </p>
             {reportError && <Alert variant="warn">{reportError}</Alert>}
             <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-              <Button variant="outline" size="sm" disabled={reportLoading} onClick={() => openBugReport(false)}>
-                Report without logs
+              <Button variant="outline" size="sm" disabled={reportLoading} startIcon={reportLoading ? <Spinner size={14} /> : <Download size={14} />} onClick={downloadDiagnosticLogs}>
+                {reportLoading ? 'Preparing logs…' : 'Download logs'}
               </Button>
-              <Button variant="primary" size="sm" disabled={reportLoading} startIcon={reportLoading ? <Spinner size={14} /> : <Mail size={14} />} onClick={() => openBugReport(true)}>
-                Include logs &amp; open email
-              </Button>
+              <a href={issueUrl} target="_blank" rel="noreferrer" onClick={() => setShowReport(false)} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-brand-500 px-4 text-sm font-semibold text-white shadow-theme-xs transition hover:bg-brand-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2">
+                <ExternalLink size={15} /> Create GitHub issue
+              </a>
             </div>
           </div>
         </Modal>

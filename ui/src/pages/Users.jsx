@@ -2,6 +2,7 @@
 /* SPDX-License-Identifier: AGPL-3.0-or-later */
 
 import { useState, useEffect, useCallback } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { Plus, Trash2, Users as UsersIcon } from 'lucide-react'
 import api from '../lib/api'
 import { parseServerTimestamp } from '../lib/formatTime'
@@ -32,7 +33,8 @@ const TABS = [
 ]
 
 export default function Users() {
-  const [activeTab, setActiveTab]   = useState('team')
+  const [searchParams] = useSearchParams()
+  const [activeTab, setActiveTab]   = useState(() => searchParams.get('tab') === 'requests' ? 'requests' : 'team')
   const [invites, setInvites]       = useState([])
   const [requests, setRequests]     = useState([])
   const [loading, setLoading]       = useState(true)
@@ -53,6 +55,9 @@ export default function Users() {
       .finally(() => setLoading(false))
   , [])
   useEffect(() => { load() }, [load])
+  useEffect(() => {
+    if (searchParams.get('tab') === 'requests') setActiveTab('requests')
+  }, [searchParams])
 
   const updateUser  = async (id, params) => { await api.patch('/users/' + id, params); reloadUsers() }
   const deleteUser  = async (id) => { if (!confirm('Delete this user?')) return; await api.delete('/users/' + id); reloadUsers() }
@@ -80,8 +85,17 @@ export default function Users() {
 
   const copyInviteUrl  = (token, id) => { copyToClipboard(inviteUrl(token)).then(() => { setCopied(id); setTimeout(() => setCopied(null), 2000) }) }
   const deleteInvite   = async (id) => { await api.delete(`/auth/invites/${id}`); setInvites(i => i.filter(x => x.id !== id)) }
-  const approveRequest = async (id) => { await api.post(`/requests/${id}/approve`); setRequests(rs => rs.filter(r => r.id !== id)); load() }
-  const denyRequest    = async (id) => { await api.post(`/requests/${id}/deny`); setRequests(rs => rs.filter(r => r.id !== id)) }
+  const approveRequest = async (id) => {
+    await api.post(`/requests/${id}/approve`)
+    setRequests(rs => rs.filter(r => r.id !== id))
+    window.dispatchEvent(new Event('mcplama:access-requests-updated'))
+    load()
+  }
+  const denyRequest = async (id) => {
+    await api.post(`/requests/${id}/deny`)
+    setRequests(rs => rs.filter(r => r.id !== id))
+    window.dispatchEvent(new Event('mcplama:access-requests-updated'))
+  }
   const revokeAccess   = async (req) => {
     if (!confirm(`Revoke ${req.user_name}'s access to ${req.server_name}?`)) return
     await api.delete(`/servers/${req.server_id}/members/${req.user_id}`)

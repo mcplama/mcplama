@@ -552,12 +552,20 @@ export default function Dashboard() {
               </div>
               <div className="flex gap-2">
                 <button
-                  onClick={async () => { await api.post(`/requests/${req.id}/approve`); setPendingRequests(rs => rs.filter(r => r.id !== req.id)) }}
+                  onClick={async () => {
+                    await api.post(`/requests/${req.id}/approve`)
+                    setPendingRequests(rs => rs.filter(r => r.id !== req.id))
+                    window.dispatchEvent(new Event('mcplama:access-requests-updated'))
+                  }}
                   className="flex-1 py-1.5 rounded-lg text-theme-xs font-semibold bg-success-50 text-success-600 border border-success-200 dark:bg-success-500/15 dark:text-success-400 dark:border-success-500/30 hover:bg-success-100 dark:hover:bg-success-500/20 transition-colors">
                   Approve
                 </button>
                 <button
-                  onClick={async () => { await api.post(`/requests/${req.id}/deny`); setPendingRequests(rs => rs.filter(r => r.id !== req.id)) }}
+                  onClick={async () => {
+                    await api.post(`/requests/${req.id}/deny`)
+                    setPendingRequests(rs => rs.filter(r => r.id !== req.id))
+                    window.dispatchEvent(new Event('mcplama:access-requests-updated'))
+                  }}
                   className="flex-1 py-1.5 rounded-lg text-theme-xs font-semibold bg-error-50 text-error-600 border border-error-200 dark:bg-error-500/15 dark:text-error-400 dark:border-error-500/30 hover:bg-error-100 dark:hover:bg-error-500/20 transition-colors">
                   Deny
                 </button>

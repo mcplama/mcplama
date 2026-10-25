@@ -1,10 +1,10 @@
 /* Copyright (c) 2026 MCPlama <dev@mcplama.com> */
 /* SPDX-License-Identifier: AGPL-3.0-or-later */
 
-import { NavLink, useLocation } from 'react-router-dom'
+import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import {
   LayoutDashboard, Package, Server, Link2, Activity,
-  Shield, Bell, Users, Settings, HelpCircle,
+  Shield, Bell, Users, Settings, HelpCircle, Bug,
   type LucideIcon,
 } from 'lucide-react'
 import { useSidebar } from '../../context/SidebarContext'
@@ -52,7 +52,8 @@ function NavItemRow({ item, collapsed }: { item: NavItem; collapsed: boolean }) 
 }
 
 export default function Sidebar() {
-  const { isExpanded, isMobileOpen, isHovered, setIsHovered } = useSidebar()
+  const { isExpanded, isMobileOpen, isHovered, setIsHovered, toggleMobileSidebar } = useSidebar()
+  const navigate = useNavigate()
   const collapsed = !isExpanded && !isHovered && !isMobileOpen
 
   return (
@@ -85,9 +86,6 @@ export default function Sidebar() {
               <div className="flex items-center gap-1.5">
                 <span className="text-[15px] font-bold text-gray-900 dark:text-white tracking-tight leading-none">
                   MCPlama
-                </span>
-                <span className="rounded-full bg-amber-100 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-amber-700 dark:bg-amber-500/15 dark:text-amber-400">
-                  Beta
                 </span>
               </div>
               <span className="text-[11px] text-gray-500 dark:text-gray-400 font-medium">
@@ -137,6 +135,20 @@ export default function Sidebar() {
 
       {/* Help link */}
       <div className="px-4 pb-5 border-t border-gray-100 dark:border-gray-800 pt-3">
+        <button
+          type="button"
+          title={collapsed ? 'Report a bug' : undefined}
+          onClick={() => {
+            navigate('/servers', { state: { openBugReport: true } })
+            if (isMobileOpen) toggleMobileSidebar()
+          }}
+          className={`menu-item group menu-item-inactive w-full ${collapsed ? 'lg:justify-center' : ''}`}
+        >
+          <span className="menu-item-icon-inactive shrink-0">
+            <Bug size={20} strokeWidth={1.8} />
+          </span>
+          {!collapsed && <span>Report a bug</span>}
+        </button>
         <a
           href="https://mcplama.com/docs"
           className={`menu-item group menu-item-inactive w-full

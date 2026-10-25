@@ -4,7 +4,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { RefreshCw, Download, Radio, Activity, Ban, X } from 'lucide-react'
 import api from '../lib/api'
-import { formatLogTimestamp, parseServerTimestamp } from '../lib/formatTime'
+import { formatLogTimestamp } from '../lib/formatTime'
 import { Spinner, EmptyState } from '../components/ui'
 import { Table, TableHeader, TableBody, TableRow, TableCell } from '../components/kit/Table'
 import Badge from '../components/kit/Badge'
@@ -338,9 +338,9 @@ export default function ActivityPage() {
             role="dialog"
             aria-modal="true"
             aria-label={`Activity log ${selectedLog.id} details`}
-            className="activity-log-panel flex h-full w-[min(520px,94vw)] flex-col border-l border-gray-200 bg-white shadow-2xl dark:border-gray-800 dark:bg-gray-950"
+            className="activity-log-panel flex h-[100dvh] w-full max-w-[640px] flex-col border-l border-gray-200 bg-white shadow-2xl dark:border-gray-800 dark:bg-gray-950 sm:w-[min(640px,94vw)]"
           >
-            <div className="flex h-[60px] shrink-0 items-center justify-between border-b border-gray-200 px-5 dark:border-gray-800">
+            <div className="flex shrink-0 items-center justify-between gap-4 border-b border-gray-200 px-4 py-4 dark:border-gray-800 sm:px-6">
               <div>
                 <h3 className="text-sm font-semibold text-gray-800 dark:text-white/90">Log details</h3>
                 <p className="text-theme-xs text-gray-400">Event #{selectedLog.id}</p>
@@ -355,15 +355,15 @@ export default function ActivityPage() {
               </button>
             </div>
 
-            <div className="flex-1 space-y-6 overflow-y-auto p-5">
-              <div className="flex items-center justify-between rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-800 dark:bg-white/[0.03]">
-                <div>
+            <div className="min-h-0 flex-1 space-y-5 overflow-y-auto p-4 sm:space-y-6 sm:p-6">
+              <div className="flex flex-col gap-3 rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-800 dark:bg-white/[0.03] sm:flex-row sm:items-center sm:justify-between">
+                <div className="min-w-0">
                   <p className="text-theme-xs font-semibold uppercase tracking-wide text-gray-400">{selectedLog.tool ? 'Tool call' : 'Activity'}</p>
-                  <p className="mt-1 break-all text-sm font-semibold text-gray-800 dark:text-white/90">
+                  <p className="mt-1 break-words text-base font-semibold text-gray-800 dark:text-white/90">
                     {selectedLog.tool || selectedLog.action}
                   </p>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex shrink-0 items-center gap-2">
                   <Badge size="sm" color={statusBadgeProps(selectedLog.status_code).color}>
                     {statusBadgeProps(selectedLog.status_code).label}
                   </Badge>
@@ -371,9 +371,9 @@ export default function ActivityPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 {[
-                  ['Timestamp', parseServerTimestamp(selectedLog.timestamp).toISOString()],
+                  ['Timestamp', formatLogTimestamp(selectedLog.timestamp)],
                   ['User', selectedLog.user_email || 'system'],
                   ['Server', selectedLog.server_name || '—'],
                   ['Action', selectedLog.action || '—'],
@@ -382,9 +382,13 @@ export default function ActivityPage() {
                   ['Resource type', selectedLog.resource_type || '—'],
                   ['Resource ID', selectedLog.resource_id || '—'],
                 ].map(([label, value]) => (
-                  <div key={label} className="min-w-0">
-                    <p className="mb-1 text-theme-xs font-semibold text-gray-400 dark:text-gray-500">{label}</p>
-                    <p className="break-all font-mono text-theme-xs text-gray-700 dark:text-gray-300">{String(value)}</p>
+                  <div key={label} className="min-w-0 rounded-lg border border-gray-100 bg-white p-3 dark:border-gray-800 dark:bg-white/[0.02]">
+                    <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500">{label}</p>
+                    {label === 'Timestamp' && typeof value === 'object' ? (
+                      <p className="font-mono text-xs text-gray-700 dark:text-gray-300">{value.date}<span className="ml-2 text-gray-500">{value.time}</span></p>
+                    ) : (
+                      <p className="break-words text-xs text-gray-700 dark:text-gray-300">{String(value)}</p>
+                    )}
                   </div>
                 ))}
               </div>
@@ -392,7 +396,7 @@ export default function ActivityPage() {
               {selectedLog.request_body && (
                 <div>
                   <p className="mb-2 text-theme-xs font-semibold text-gray-500 dark:text-gray-400">Request body</p>
-                  <pre className="max-h-72 overflow-auto whitespace-pre-wrap break-all rounded-xl border border-gray-200 bg-gray-50 p-4 font-mono text-theme-xs text-gray-700 dark:border-gray-800 dark:bg-black/20 dark:text-gray-300">
+                  <pre className="max-h-80 overflow-auto whitespace-pre-wrap break-words rounded-xl border border-gray-200 bg-gray-50 p-3 font-mono text-theme-xs text-gray-700 dark:border-gray-800 dark:bg-black/20 dark:text-gray-300 sm:p-4">
                     {selectedLog.request_body}
                   </pre>
                 </div>
@@ -410,7 +414,7 @@ export default function ActivityPage() {
               {selectedLog.error && selectedLog.meta?.action_taken !== 'blocked' && (
                 <div>
                   <p className="mb-2 text-theme-xs font-semibold text-error-600 dark:text-error-400">Error</p>
-                  <pre className="whitespace-pre-wrap break-all rounded-xl border border-error-200 bg-error-50 p-4 font-mono text-theme-xs text-error-600 dark:border-error-500/20 dark:bg-error-500/10 dark:text-error-400">
+                  <pre className="max-h-80 overflow-auto whitespace-pre-wrap break-words rounded-xl border border-error-200 bg-error-50 p-3 font-mono text-theme-xs text-error-600 dark:border-error-500/20 dark:bg-error-500/10 dark:text-error-400 sm:p-4">
                     {selectedLog.error}
                   </pre>
                 </div>
@@ -419,7 +423,7 @@ export default function ActivityPage() {
               {selectedLog.meta && Object.keys(selectedLog.meta).length > 0 && (
                 <details className="rounded-xl border border-gray-200 p-4 dark:border-gray-800">
                   <summary className="cursor-pointer text-theme-xs font-semibold text-gray-600 dark:text-gray-400">Raw metadata</summary>
-                  <pre className="mt-3 overflow-auto whitespace-pre-wrap break-all font-mono text-theme-xs text-gray-600 dark:text-gray-400">
+                  <pre className="mt-3 max-h-80 overflow-auto whitespace-pre-wrap break-words rounded-lg bg-gray-50 p-3 font-mono text-theme-xs text-gray-600 dark:bg-black/20 dark:text-gray-400">
                     {JSON.stringify(selectedLog.meta, null, 2)}
                   </pre>
                 </details>

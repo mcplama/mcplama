@@ -1,9 +1,10 @@
 /* Copyright (c) 2026 MCPlama <dev@mcplama.com> */
 /* SPDX-License-Identifier: AGPL-3.0-or-later */
 
-import { useState, useRef, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { Search, Moon, Sun, LogOut, User, ChevronDown, Plus } from 'lucide-react'
+import { useState, useRef, useEffect, useCallback } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
+import { Search, Moon, Sun, LogOut, User, ChevronDown, Plus, Bell } from 'lucide-react'
+import api from '../../lib/api'
 import { useAuth } from '../../hooks/useAuth'
 import { useTheme } from '../../hooks/useTheme'
 import { useSidebar } from '../../context/SidebarContext'
@@ -21,15 +22,19 @@ const COMMANDS = [
 ]
 
 export default function Navbar() {
-  const { user, logout } = useAuth()
+  const { user, isAdmin, logout } = useAuth()
   const { theme, toggleTheme } = useTheme()
   const { isMobileOpen, toggleSidebar, toggleMobileSidebar } = useSidebar()
   const navigate = useNavigate()
+  const location = useLocation()
   const [userMenuOpen, setUserMenuOpen] = useState(false)
+  const [notificationsOpen, setNotificationsOpen] = useState(false)
+  const [accessRequests, setAccessRequests] = useState<any[]>([])
   const [commandOpen, setCommandOpen] = useState(false)
   const [commandQuery, setCommandQuery] = useState('')
   const [activeCommand, setActiveCommand] = useState(0)
   const menuRef = useRef<HTMLDivElement>(null)
+  const notificationsRef = useRef<HTMLDivElement>(null)
   const searchRef = useRef<HTMLDivElement>(null)
   const searchInputRef = useRef<HTMLInputElement>(null)
 
@@ -45,6 +50,30 @@ export default function Navbar() {
     setActiveCommand(0)
   }
 
+  const loadAccessRequests = useCallback(async () => {
+    if (!isAdmin) return
+    try {
+      const { data } = await api.get('/requests?status=pending&limit=100')
+      setAccessRequests(data)
+    } catch {}
+  }, [isAdmin])
+
+  useEffect(() => {
+    if (!isAdmin) {
+      setAccessRequests([])
+      return
+    }
+    loadAccessRequests()
+    const interval = window.setInterval(loadAccessRequests, 30_000)
+    window.addEventListener('focus', loadAccessRequests)
+    window.addEventListener('mcplama:access-requests-updated', loadAccessRequests)
+    return () => {
+      window.clearInterval(interval)
+      window.removeEventListener('focus', loadAccessRequests)
+      window.removeEventListener('mcplama:access-requests-updated', loadAccessRequests)
+    }
+  }, [isAdmin, loadAccessRequests])
+
   const handleToggle = () => {
     if (window.innerWidth >= 1024) toggleSidebar()
     else toggleMobileSidebar()
@@ -57,6 +86,9 @@ export default function Navbar() {
     function handleClick(e: MouseEvent) {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
         setUserMenuOpen(false)
+      }
+      if (notificationsRef.current && !notificationsRef.current.contains(e.target as Node)) {
+        setNotificationsOpen(false)
       }
       if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
         setCommandOpen(false)
@@ -182,14 +214,72 @@ export default function Navbar() {
         {/* Right: actions */}
         <div className="flex items-center gap-2 shrink-0">
 
+          {isAdmin && (
+            <div className="relative" ref={notificationsRef}>
+              <button
+                type="button"
+                aria-label={accessRequests.length ? `${accessRequests.length} pending access requests` : 'Notifications'}
+                aria-expanded={notificationsOpen}
+                onClick={() => setNotificationsOpen(open => !open)}
+                className="relative flex h-10 w-10 items-center justify-center rounded-full border border-gray-200 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white"
+              >
+                <Bell size={18} />
+                {accessRequests.length > 0 && (
+                  <span className="absolute -right-1 -top-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-error-500 px-1 text-[10px] font-bold leading-none text-white ring-2 ring-white dark:ring-gray-900">
+                    {accessRequests.length > 99 ? '99+' : accessRequests.length}
+                  </span>
+                )}
+              </button>
+
+              {notificationsOpen && (
+                <div className="absolute right-0 z-[120] mt-2 w-[min(340px,calc(100vw-24px))] overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-theme-lg dark:border-gray-800 dark:bg-gray-900">
+                  <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3 dark:border-gray-800">
+                    <div>
+                      <p className="text-sm font-semibold text-gray-800 dark:text-white/90">Notifications</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">{accessRequests.length} pending access request{accessRequests.length === 1 ? '' : 's'}</p>
+                    </div>
+                    {accessRequests.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => { setNotificationsOpen(false); navigate('/users?tab=requests') }}
+                        className="text-xs font-semibold text-brand-500 hover:text-brand-600"
+                      >
+                        Review all
+                      </button>
+                    )}
+                  </div>
+                  {accessRequests.length === 0 ? (
+                    <p className="px-4 py-6 text-center text-sm text-gray-500 dark:text-gray-400">No pending access requests.</p>
+                  ) : (
+                    <div className="max-h-80 overflow-y-auto">
+                      {accessRequests.slice(0, 8).map(request => (
+                        <button
+                          key={request.id}
+                          type="button"
+                          onClick={() => { setNotificationsOpen(false); navigate('/users?tab=requests') }}
+                          className="block w-full border-b border-gray-100 px-4 py-3 text-left transition-colors last:border-0 hover:bg-gray-50 dark:border-gray-800 dark:hover:bg-white/[0.03]"
+                        >
+                          <span className="block truncate text-sm font-medium text-gray-800 dark:text-gray-200">{request.user_name} requested access</span>
+                          <span className="mt-0.5 block truncate text-xs text-gray-500 dark:text-gray-400">{request.server_name} · {request.user_email}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Add server shortcut */}
-          <button
-            onClick={() => navigate('/catalog')}
-            className="hidden sm:flex items-center gap-1.5 h-10 px-4 rounded-lg text-sm font-semibold text-white bg-brand-500 hover:bg-brand-600 transition-colors"
-          >
-            <Plus size={15} strokeWidth={2.5} />
-            <span className="hidden md:inline">Add server</span>
-          </button>
+          {location.pathname !== '/catalog' && (
+            <button
+              onClick={() => navigate('/catalog')}
+              className="hidden sm:flex items-center gap-1.5 h-10 px-4 rounded-lg text-sm font-semibold text-white bg-brand-500 hover:bg-brand-600 transition-colors"
+            >
+              <Plus size={15} strokeWidth={2.5} />
+              <span className="hidden md:inline">Add server</span>
+            </button>
+          )}
 
           {/* Theme toggle */}
           <button
