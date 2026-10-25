@@ -25,6 +25,8 @@ export default function Catalog() {
   const [installed, setInstalled]           = useState([])
   const [query, setQuery]                   = useState('')
   const [cat, setCat]                       = useState('all')
+  const [runtimeFilter, setRuntimeFilter]   = useState('all')
+  const [authFilter, setAuthFilter]         = useState('all')
   const [loading, setLoading]               = useState(true)
   const [adding, setAdding]                 = useState(null)
   const [showAdd, setShowAdd]               = useState(false)
@@ -70,9 +72,16 @@ export default function Catalog() {
     finally { setRefreshing(false) }
   }
 
-  const install = async (entry) => {
+  const install = async (entry, setup = {}) => {
     setAdding(entry.id)
     try {
+      const credentialFields = setup.credentialFields || catalogRequirementFields(entry)
+      const credentialMode = setup.credentialMode || entry.auth_mode || 'none'
+      const credentials = setup.credentials || {}
+      const oauthKeys = new Set((entry.oauth_client?.fields || []).map(field => field.key))
+      const userSchema = credentialMode === 'per_user'
+        ? credentialFields
+        : (entry.user_config_schema || [])
       const { data } = await api.post('/servers', {
         name: entry.name, description: entry.description, icon: entry.icon, color: entry.color,
         logo_url: entry.logo_url || null, category: entry.category, registry_id: entry.id,
@@ -80,19 +89,30 @@ export default function Catalog() {
         transport: entry.transport, docker_image: entry.docker_image || null,
         docker_args: entry.docker_args || [], container_port: entry.container_port || 8000,
         package: entry.package || null, args: entry.args || [], url: entry.url || null,
-        auth_type: entry.auth_type || 'none', auth_mode: entry.auth_mode || 'none',
-        user_config_schema: catalogRequirementFields(entry), tools: entry.tools || [],
+        auth_type: entry.auth_type || 'none',
+        auth_mode: entry.remote_auth === 'oauth' ? 'per_user' : (credentialMode || 'none'),
+        auth_config: credentialMode === 'shared'
+          ? Object.fromEntries(Object.entries(credentials).filter(([key, value]) => value && !oauthKeys.has(key)))
+          : {},
+        remote_auth: entry.remote_auth || 'none', auth_header_name: entry.auth_header_name || null,
+        oauth_scopes: entry.oauth_scopes || entry.oauth_client?.scopes || null,
+        oauth_client_id: credentialMode === 'shared' ? credentials.oauth_client_id || null : null,
+        oauth_client_secret: credentialMode === 'shared' ? credentials.oauth_client_secret || null : null,
+        oauth_client_mode: entry.oauth_client?.required ? credentialMode : 'shared',
+        user_config_schema: userSchema, tools: entry.tools || [],
       })
       setInstalled(i => [...i, entry.id])
       navigate('/servers/' + data.id)
-    } catch (e) { alert(e.response?.data?.detail || 'Failed to install') }
+    } catch (e) { alert(e.response?.data?.detail || `Failed to ${entry.runtime === 'remote' ? 'connect' : 'install'}`) }
     finally { setAdding(null) }
   }
 
   const categories = ['all', ...new Set(registry.map(e => e.category).filter(Boolean))]
   const filtered = registry.filter(e =>
     (cat === 'all' || e.category === cat) &&
-    (!query || e.name.toLowerCase().includes(query.toLowerCase()) || (e.description || '').toLowerCase().includes(query.toLowerCase())) &&
+    (runtimeFilter === 'all' || e.runtime === runtimeFilter) &&
+    (authFilter === 'all' || (e.auth_type || 'none') === authFilter) &&
+    (!query || [e.name, e.description, e.category, e.publisher, e.runtime, e.transport, e.auth_type, e.docs_url, e.requirements].some(v => (v || '').toLowerCase().includes(query.toLowerCase()))) &&
     (!showOfficialOnly || e.official)
   )
   const { page, setPage, totalPages, paginated, total } = usePagination(filtered, 20)
@@ -103,7 +123,7 @@ export default function Catalog() {
     <div className="space-y-5 animate-fade-in">
       <PageHeader
         title="Catalog"
-        description={`${registry.length} MCP connectors — install with one click`}
+        description={`${registry.length} MCP servers — inspect requirements before installing or connecting`}
         action={
           <div className="flex gap-2">
             <Btn variant="secondary" size="sm" icon={RefreshCw} loading={refreshing} onClick={refreshCatalog}>
@@ -137,6 +157,14 @@ export default function Catalog() {
               <CatIcon cat={c} size={10} /> {c}
             </button>
           ))}
+          <select aria-label="Filter by runtime" value={runtimeFilter} onChange={e => { setRuntimeFilter(e.target.value); setPage(1) }} className="filter-btn">
+            <option value="all">All runtimes</option>
+            {['docker', 'npx', 'uvx', 'remote'].map(value => <option key={value} value={value}>{value}</option>)}
+          </select>
+          <select aria-label="Filter by authentication" value={authFilter} onChange={e => { setAuthFilter(e.target.value); setPage(1) }} className="filter-btn">
+            <option value="all">All authentication</option>
+            {[...new Set(registry.map(e => e.auth_type || 'none'))].sort().map(value => <option key={value} value={value}>{value}</option>)}
+          </select>
         </div>
       </div>
 
@@ -200,6 +228,12 @@ export default function Catalog() {
                     </span>
                   )}
                 </div>
+                <div className="mt-2 flex flex-wrap gap-1.5 text-[10px] text-gray-500 dark:text-gray-400">
+                  <span className="rounded-full bg-gray-100 px-2 py-1 dark:bg-white/[0.06]">{entry.runtime || 'runtime unknown'}</span>
+                  {entry.transport && <span className="rounded-full bg-gray-100 px-2 py-1 dark:bg-white/[0.06]">{entry.transport.replaceAll('_', ' ')}</span>}
+                  <span className="rounded-full bg-gray-100 px-2 py-1 dark:bg-white/[0.06]">{entry.auth_type || 'none'} auth</span>
+                  {Array.isArray(entry.tools) && <span className="rounded-full bg-gray-100 px-2 py-1 dark:bg-white/[0.06]">{entry.tools.length} tools listed</span>}
+                </div>
 
                 {/* Dots menu */}
                 <div className="absolute top-5 right-5">
@@ -236,7 +270,7 @@ export default function Catalog() {
                     <CheckCircle size={16} /> {entry.installed_by_admin ? 'Installed by admin' : 'Installed'}
                   </span>
                 ) : (
-                  <span className="text-xs font-medium text-brand-500">View details to install →</span>
+                  <span className="text-xs font-medium text-brand-500">View details to {entry.runtime === 'remote' && !entry.url ? 'configure' : entry.runtime === 'remote' ? 'connect' : 'install'} →</span>
                 )}
               </div>
             </article>
@@ -257,6 +291,7 @@ export default function Catalog() {
           entry={selected}
           onClose={() => setSelected(null)}
           onInstall={install}
+          onInspect={entry => api.post(`/registry/${entry.id}/inspect`)}
           installing={adding === selected?.id}
           isInstalled={installed.includes(selected?.id)}
         />
@@ -268,6 +303,7 @@ export default function Catalog() {
           onAdded={id => { setShowAdd(false); navigate('/servers/' + id) }}
         />
       )}
+
     </div>
   )
 }

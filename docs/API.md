@@ -53,7 +53,7 @@ There's no separate API-key mechanism for the management API — service-to-serv
 | `/servers` | `servers` | install/configure/remove MCP servers, test connection, credential status |
 | `/oauth` | `oauth` | per-server OAuth connect/callback/refresh/disconnect flows |
 | `/connections` | `connections` | per-user connection tokens (what `/connect/{token}` resolves), Claude Desktop config snippet |
-| `/registry` | `registry` | the browsable MCP server catalog |
+| `/registry` | `registry` | the browsable v2 MCP server catalog and admin-only remote endpoint inspection |
 | `/gateway` | `gateway` | gateway-wide stats, Claude Desktop config helper |
 | `/gateway/config` | `gateway-config` | gateway name/URL settings |
 | `/users` | `users` | user management (list/update/delete) |

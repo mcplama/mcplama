@@ -1,0 +1,65 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://mcplama.com/schemas/registry-v2.schema.json",
+  "title": "MCPlama registry v2",
+  "type": "object",
+  "required": ["version", "servers"],
+  "properties": {
+    "version": { "const": 2 },
+    "servers": { "type": "array", "items": { "$ref": "#/definitions/server" } }
+  },
+  "definitions": {
+    "server": {
+      "type": "object",
+      "required": ["id", "name", "publisher", "description", "category", "runtime", "transport", "auth_type", "auth_mode", "official", "docs_url", "requirements"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9_-]*$" },
+        "name": { "type": "string", "minLength": 1 },
+        "publisher": { "type": "string", "minLength": 1 },
+        "description": { "type": "string", "minLength": 1 },
+        "category": { "type": "string", "minLength": 1 },
+        "official": { "type": "boolean" },
+        "version": { "type": ["string", "null"] },
+        "docs_url": { "type": "string", "format": "uri" },
+        "runtime": { "enum": ["docker", "npx", "uvx", "remote"] },
+        "transport": { "enum": ["stdio", "http", "streamable_http", "sse"] },
+        "docker_image": { "type": ["string", "null"] },
+        "package": { "type": ["string", "null"] },
+        "url": { "type": ["string", "null"], "format": "uri" },
+        "auth_type": { "enum": ["none", "api_token", "api_key", "oauth", "credentials", "basic", "custom"] },
+        "auth_mode": { "enum": ["none", "environment", "shared", "per_user"] },
+        "remote_auth": { "enum": ["none", "bearer", "header", "oauth"] },
+        "oauth_scopes": { "type": "string" },
+        "credential_mode_options": { "type": "array", "items": { "enum": ["shared", "per_user"] }, "uniqueItems": true },
+        "oauth_client": {
+          "type": "object",
+          "required": ["required", "fields"],
+          "properties": {
+            "required": { "type": "boolean" },
+            "credential_mode": { "enum": ["shared", "per_user"] },
+            "credential_mode_options": { "type": "array", "items": { "enum": ["shared", "per_user"] }, "uniqueItems": true },
+            "default_credential_mode": { "enum": ["shared", "per_user"] },
+            "registration": { "enum": ["discovered", "static"] },
+            "fields": { "type": "array", "items": { "type": "object", "required": ["key", "label", "type"], "properties": { "key": { "type": "string" }, "label": { "type": "string" }, "type": { "enum": ["secret", "text"] }, "required": { "type": "boolean" } } } },
+            "scopes": { "type": "string" }
+          },
+          "additionalProperties": false
+        },
+        "auth_header_name": { "type": "string" },
+        "user_config_schema": { "type": "array", "items": { "type": "object", "required": ["key", "type"], "properties": { "key": { "type": "string", "minLength": 1 }, "label": { "type": "string" }, "type": { "enum": ["secret", "text", "url", "number", "boolean"] }, "required": { "type": "boolean" } }, "additionalProperties": true } },
+        "tools": { "type": "array", "items": { "type": "string", "minLength": 1 }, "uniqueItems": true },
+        "requirements": { "type": "string" },
+        "args": { "type": "array", "items": { "type": "string" } },
+        "docker_args": { "type": "array", "items": { "type": "string" } },
+        "system_packages": { "type": "array", "items": { "type": "string" } }
+      },
+      "allOf": [
+        { "if": { "properties": { "runtime": { "const": "remote" } }, "required": ["runtime"] }, "then": { "properties": { "url": { "type": ["string", "null"], "format": "uri" } } } },
+        { "if": { "properties": { "runtime": { "enum": ["npx", "uvx"] } }, "required": ["runtime"] }, "then": { "required": ["package"] } },
+        { "if": { "properties": { "runtime": { "const": "docker" } }, "required": ["runtime"] }, "then": { "required": ["docker_image"] } },
+        { "if": { "properties": { "remote_auth": { "const": "header" } }, "required": ["remote_auth"] }, "then": { "required": ["auth_header_name"] } }
+      ],
+      "additionalProperties": true
+    }
+  }
+}

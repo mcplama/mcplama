@@ -19,11 +19,9 @@ def _load() -> list:
             import httpx
             resp = httpx.get(url, timeout=10, follow_redirects=True)
             resp.raise_for_status()
-            servers = resp.json()
+            payload = resp.json()
+            servers = payload.get("servers") if isinstance(payload, dict) and payload.get("version") == 2 else payload
             if isinstance(servers, list):
-                for server in servers:
-                    server["verified_by_mcplama"] = True
-                servers.sort(key=lambda s: s.get("pull_count", 0), reverse=True)
                 return servers
         except Exception as e:
             import logging
@@ -38,6 +36,17 @@ def _load_local() -> list:
     path = getattr(settings, "REGISTRY_LOCAL_PATH", None)
     if not path:
         return []
+    if not os.path.isdir(path):
+        path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../registry"))
+    v2_path = os.path.join(path, "v2.json")
+    if os.path.isfile(v2_path):
+        try:
+            with open(v2_path) as f:
+                payload = json.load(f)
+            if isinstance(payload, dict) and payload.get("version") == 2 and isinstance(payload.get("servers"), list):
+                return payload["servers"]
+        except Exception:
+            pass
     servers = []
     servers_dir = os.path.join(path, "servers")
     if not os.path.exists(servers_dir):
@@ -49,7 +58,6 @@ def _load_local() -> list:
                     servers.append(json.load(f))
             except Exception:
                 pass
-    servers.sort(key=lambda s: s.get("pull_count", 0), reverse=True)
     return servers
 
 
@@ -68,16 +76,19 @@ def get_categories() -> list:
     return sorted(cats)
 
 
-def search(query: str = "", category: str = "") -> list:
+def search(query: str = "", category: str = "", runtime: str = "", auth_type: str = "") -> list:
     results = get_all()
     if category:
         results = [s for s in results if s.get("category") == category]
+    if runtime:
+        results = [s for s in results if s.get("runtime") == runtime]
+    if auth_type:
+        results = [s for s in results if (s.get("auth_type") or "none") == auth_type]
     if query:
         q = query.lower()
-        results = [s for s in results if
-                   q in s["name"].lower() or
-                   q in s.get("description", "").lower() or
-                   q in s.get("id", "").lower()]
+        fields = ("name", "description", "id", "publisher", "category", "runtime",
+                  "transport", "auth_type", "docs_url", "requirements")
+        results = [s for s in results if any(q in str(s.get(key) or "").lower() for key in fields)]
     return results
 
 

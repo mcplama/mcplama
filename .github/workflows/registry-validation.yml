@@ -1,0 +1,29 @@
+name: Registry validation
+
+on:
+  pull_request:
+    paths:
+      - 'registry.json'
+      - 'registry/**'
+      - 'registry.schema.json'
+      - 'registry/v2.schema.json'
+      - 'tools/validate_registry.py'
+      - '.github/workflows/registry-validation.yml'
+  push:
+    paths:
+      - 'registry.json'
+      - 'registry/**'
+      - 'registry.schema.json'
+      - 'registry/v2.schema.json'
+      - 'tools/validate_registry.py'
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - run: python -m pip install jsonschema
+      - run: python tools/validate_registry.py

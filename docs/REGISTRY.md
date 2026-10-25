@@ -1,9 +1,10 @@
 # Request an MCP server registry entry
 
 The MCPlama registry is the curated catalog shown in the dashboard. The
-canonical catalog is maintained in the application repository's
-[`registry.json`](https://raw.githubusercontent.com/mcplama/mcplama/refs/heads/main/registry.json).
-A registry entry describes an MCP server that MCPlama can install and run; it is not the
+current catalog is maintained in [`registry/v2.json`](../registry/v2.json),
+with its own versioned envelope and schema. Older MCPlama releases can continue
+using the unchanged v1 [`registry.json`](../registry.json).
+A registry entry describes an MCP server that MCPlama can install or connect to; it is not the
 MCPlama application image itself. The application image is
 `mcplama/mcplama`.
 
@@ -12,9 +13,8 @@ MCPlama application image itself. The application image is
 Confirm that the server:
 
 - has a public source repository and maintainer documentation;
-- has a stable Docker image or npm/uvx package, with a version or tag that can
-  be identified and updated;
-- documents its transport (`http` or `stdio`) and required startup arguments;
+- has a stable Docker image or npm/uvx package, or a public remote MCP endpoint;
+- documents its transport (`stdio`, `streamable_http`, legacy `http`, or legacy `sse`) and required startup arguments;
 - documents every credential or configuration value it needs; and
 - has a license compatible with inclusion in a catalog of links and metadata.
 
@@ -29,7 +29,7 @@ with:
 
 1. Server name, publisher, and source repository.
 2. The Docker image or package name and the exact version/tag tested.
-3. Runtime and transport: `docker`, `npx`, or `uvx`, plus `http` or `stdio`.
+3. Runtime and transport: `docker`, `npx`, `uvx`, or `remote`, plus `stdio`, `streamable_http`, `sse`, or legacy `http`.
 4. Required credentials, environment variables, and whether they are shared or
    per-user.
 5. The server's documentation URL and a list of representative tools.
@@ -69,6 +69,56 @@ these fields:
 For `npx` or `uvx`, provide `package` and set `docker_image` to `null`. For
 credentials, describe each required value in `user_config_schema` and choose
 the appropriate `auth_mode`; never put an actual credential in the file.
+
+Remote entries use the same MCPlama remote proxy and OAuth support as manually
+configured remote servers. Include `url` and `remote_auth` (`none`, `bearer`,
+`header`, or `oauth`) and specify `auth_header_name` when using `header`.
+`auth_type` is the user facing credential category; `auth_mode` is `none`,
+`shared`, or `per_user`. The `tools` array is a maintained name list, not a
+security classification. Admins can inspect public remote endpoints in the
+catalog; inspection sends MCP `initialize` and `tools/list`, never tool calls.
+Tool `annotations` shown by live inspection are server supplied hints.
+
+V1 entries are validated against [`registry.schema.json`](../registry.schema.json);
+v2 entries use [`registry/v2.schema.json`](../registry/v2.schema.json). Add new files to
+`registry/servers/` only when they are also included in the canonical catalog.
+
+## Registry v2
+
+New MCPlama releases load the versioned catalog in [`registry/v2.json`](../registry/v2.json),
+whose envelope is `{ "version": 2, "servers": [...] }`. It preserves the v1
+entries and adds the v2 integrations at the start of the list. Older releases
+continue loading the unchanged top-level array in [`registry.json`](../registry.json).
+Validate changes to both catalogs with `python tools/validate_registry.py`.
+
+The v2 starter order is PostgreSQL, Filesystem, Brave Search, Playwright, Slack,
+Jira, Obsidian, Notion, Figma, Resend, RevenueCat, then Google Workspace MCP
+services. Google publishes separate endpoints for Drive, Gmail, Calendar, Chat,
+Docs, Sheets, Slides, and People. Their registry entries carry the Developer
+Preview and OAuth setup requirements from Google's documentation.
+
+### Remote entry example
+
+```json
+{
+  "id": "mcp-example-remote",
+  "name": "Example Remote",
+  "publisher": "example-org",
+  "description": "Example hosted MCP service",
+  "category": "Developer Tools",
+  "official": false,
+  "version": "1.2.3",
+  "docs_url": "https://example.org/mcp",
+  "runtime": "remote",
+  "transport": "streamable_http",
+  "url": "https://mcp.example.org/mcp",
+  "auth_type": "oauth",
+  "auth_mode": "per_user",
+  "remote_auth": "oauth",
+  "tools": [],
+  "requirements": "Each member authorizes their own account."
+}
+```
 
 Reviewers will verify the metadata, installation flow, credentials handling,
 image/package availability, and security implications before adding the entry
