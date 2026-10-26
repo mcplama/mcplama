@@ -7,7 +7,7 @@ from app.models.server_token import ServerToken
 from app.models.connection import Connection
 from app.models.connection_access_token import ConnectionAccessToken
 from app.models.policy import Policy
-from app.models.audit import AuditLog
+from app.models.audit import AuditLog, ChangeAuditLog
 from app.models.alert import Alert
 from app.models.gateway_config import GatewayConfig
 from app.models.invite import Invite
@@ -23,6 +23,7 @@ __all__ = [
     "ConnectionAccessToken",
     "Policy",
     "AuditLog",
+    "ChangeAuditLog",
     "Alert",
     "GatewayConfig",
     "Invite",

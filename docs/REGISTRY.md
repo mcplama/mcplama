@@ -79,6 +79,38 @@ security classification. Admins can inspect public remote endpoints in the
 catalog; inspection sends MCP `initialize` and `tools/list`, never tool calls.
 Tool `annotations` shown by live inspection are server supplied hints.
 
+### Remote MCP and OAuth
+
+Remote entries use `runtime: "remote"` and a public MCP `url`. `remote_auth`
+describes how MCPlama authenticates to the upstream endpoint:
+
+- `none`: no upstream authorization header;
+- `bearer`: send a bearer token;
+- `header`: send a token in `auth_header_name`;
+- `oauth`: use the upstream MCP OAuth flow, with each member authorizing their
+  own provider account from the member portal.
+
+For remote OAuth entries, `oauth_client` describes how MCPlama obtains the
+OAuth application credentials. Set `required` and list the required `fields`
+using `key`, `label`, `type` (`text` or `secret`), and `required`. Set
+`registration` to `static` when the provider requires a pre-registered OAuth
+client, or `discovered` when the provider supports dynamic client registration.
+The optional `credential_mode_options` and `default_credential_mode` control
+whether the OAuth client credentials are shared by the deployment or supplied
+by each user. This is separate from the upstream account: members still
+authorize their own account.
+
+The admin configures shared OAuth client credentials in server settings. With
+per-user client credentials enabled, each member supplies their OAuth client
+details in the portal. In both modes, users complete the provider consent flow
+for their own account. Do not place client IDs, client secrets, access tokens,
+or refresh tokens in registry files; registry entries contain field
+definitions and setup instructions only.
+
+The catalog's remote inspection action is read-only and unauthenticated. It
+performs MCP `initialize` and `tools/list` to compare the live endpoint with
+the catalog; it does not invoke tools or pass configured user credentials.
+
 V1 entries are validated against [`registry.schema.json`](../registry.schema.json);
 v2 entries use [`registry/v2.schema.json`](../registry/v2.schema.json). Add new files to
 `registry/servers/` only when they are also included in the canonical catalog.

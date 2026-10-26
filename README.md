@@ -43,7 +43,7 @@ MCPlama gives you one control point:
 - 🌐 Controlled MCP connection URLs for your AI clients
 - 🔐 Centralized OAuth and API credentials
 - 👥 User and server access policies
-- 📋 Audit logs for MCP activity
+- 📋 Separate MCP activity and administrative change audit logs
 - 📦 MCP server catalog and lifecycle management
 - 🛡️ Separate broker boundary for MCP container execution
 
@@ -117,6 +117,16 @@ http://localhost:8000/connect/mcp_your_token
 Each user × server pair gets its own connection token. The underlying API credentials stay in MCPlama instead of being copied into the AI client's configuration.
 
 You now have an MCP server running behind MCPlama with centralized credentials, access control, and auditing.
+
+### Remote MCP OAuth
+
+For a remote MCP server that uses OAuth, an administrator configures the provider's OAuth client details in the server settings. Each member then authorizes their own provider account from the member portal. The OAuth client can use deployment-wide credentials or credentials supplied by each user, when the provider supports that setup. Provider tokens stay in MCPlama and are used when proxying that member's requests.
+
+See [Registry documentation](docs/REGISTRY.md#remote-mcp-and-oauth) for remote catalog metadata and OAuth client modes.
+
+### Audit logs
+
+The **Activity** page records MCP calls. **Audit Logs** is a separate admin view for server configuration and credential changes, invitations, user access changes, policies, and access grants or revocations. Entries show who made the change, when, the affected resource, and a safe summary of fields or scopes. Secret values are never recorded.
 
 ## Member portal
 

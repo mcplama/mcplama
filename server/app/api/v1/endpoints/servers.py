@@ -11,12 +11,68 @@ from pydantic import BaseModel
 from app.db.session import get_db
 from app.models.server import Server, ServerStatus, AuthMode
 from app.models.user import User
+from app.models.audit import ChangeAuditLog
 from app.api.v1.endpoints.auth import get_current_user, require_admin
 from app.services import token_store
 from app.core.ssrf import validate_remote_url as _validate_remote_url
 from app.core.config import settings
 
 router = APIRouter(prefix="/servers", tags=["servers"])
+
+
+_SECRET_SERVER_FIELDS = {
+    "auth_header_value", "oauth_client_secret", "auth_config", "remote_headers",
+}
+_AUDIT_SAFE_SERVER_FIELDS = {
+    "name", "runtime", "transport", "auth_type", "auth_mode", "remote_auth",
+    "auth_header_name", "oauth_scopes",
+    "oauth_pkce", "oauth_token_auth", "oauth_client_mode", "is_enabled", "status",
+    "mcp_path", "cpu_limit", "memory_limit",
+}
+
+
+def _audit_safe_value(value):
+    if hasattr(value, "value"):
+        return value.value
+    return value
+
+
+def _server_audit_snapshot(server):
+    return [
+        {"field": field, "after": _audit_safe_value(getattr(server, field))}
+        for field in sorted(_AUDIT_SAFE_SERVER_FIELDS)
+        if getattr(server, field, None) is not None
+    ]
+
+
+def _server_change_audit(user: User, server: Server, action: str, *, fields=None, scopes=None, changes=None):
+    """Build a value-safe audit row; credential values are never included."""
+    return ChangeAuditLog(
+        user_id=user.id,
+        user_email=user.email,
+        action=action,
+        resource_type="server",
+        resource_id=str(server.id),
+        resource_name=server.name,
+        server_id=server.id,
+        server_name=server.name,
+        meta={
+            "changed_fields": sorted(set(fields or [])),
+            "credential_scopes": sorted(set(scopes or [])),
+            "changes": changes or [],
+        },
+    )
+
+
+def _submitted_credential_scopes(field, value):
+    """Return credential key names only; never include submitted values."""
+    if field == "auth_config":
+        return [str(key) for key, raw in (value or {}).items() if raw]
+    if field == "remote_headers":
+        return [str(item.get("key")) for item in (value or []) if item.get("key") and item.get("value")]
+    if field in _SECRET_SERVER_FIELDS:
+        return [field] if value else []
+    return []
 
 
 def _normalize_auth_mode(value: Optional[str]) -> AuthMode:
@@ -333,6 +389,14 @@ async def create_server(data: ServerCreate, db: AsyncSession = Depends(get_db), 
     if data.remote_headers:
         server.remote_headers = _encrypt_remote_headers(server.id, data.remote_headers)
 
+    created_fields = [field for field in data.model_fields_set if field not in _SECRET_SERVER_FIELDS]
+    created_scopes = []
+    for field in _SECRET_SERVER_FIELDS:
+        created_scopes.extend(_submitted_credential_scopes(field, getattr(data, field, None)))
+    db.add(_server_change_audit(
+        user, server, "server.created", fields=created_fields, scopes=created_scopes,
+        changes=_server_audit_snapshot(server),
+    ))
     await db.commit()
     await db.refresh(server)
 
@@ -366,7 +430,7 @@ async def _pull_image_bg(server_id: int, runtime: str, docker_image: str, packag
 
 
 @router.patch("/{server_id}", response_model=ServerOut)
-async def update_server(server_id: int, data: ServerUpdate, db: AsyncSession = Depends(get_db), _: User = Depends(require_admin)):
+async def update_server(server_id: int, data: ServerUpdate, db: AsyncSession = Depends(get_db), user: User = Depends(require_admin)):
     if data.url:
         await _validate_remote_url(data.url)
     from app.core.encryption import encrypt_dict, encrypt, decrypt_dict
@@ -374,9 +438,32 @@ async def update_server(server_id: int, data: ServerUpdate, db: AsyncSession = D
     server = result.scalar_one_or_none()
     if not server:
         raise HTTPException(404, "Server not found")
-    for field, value in data.model_dump(exclude_none=True).items():
+    updates = data.model_dump(exclude_none=True)
+    changed_fields = []
+    changed_scopes = []
+    changes = []
+    for field, value in updates.items():
         if field in ("auth_header_value", "oauth_client_secret") and not value:
             continue  # blank means "leave unchanged", not "clear the secret"
+        if field == "auth_config":
+            submitted_scopes = _submitted_credential_scopes(field, value)
+            changed_scopes.extend(submitted_scopes)
+            changed_fields.append(field)
+            if submitted_scopes:
+                changes.append({"field": "auth_config", "after": f"Updated keys: {', '.join(sorted(submitted_scopes))}"})
+        elif field == "remote_headers":
+            submitted_scopes = _submitted_credential_scopes(field, value)
+            changed_scopes.extend(submitted_scopes)
+            changed_fields.append(field)
+            if submitted_scopes:
+                changes.append({"field": "remote_headers", "after": f"Updated headers: {', '.join(sorted(submitted_scopes))}"})
+        elif field in ("auth_header_value", "oauth_client_secret"):
+            changed_scopes.append(field)
+            changes.append({"field": field, "after": "Updated"})
+        elif getattr(server, field) != value:
+            changed_fields.append(field)
+            if field in _AUDIT_SAFE_SERVER_FIELDS:
+                changes.append({"field": field, "before": _audit_safe_value(getattr(server, field)), "after": _audit_safe_value(value)})
         if field == "auth_config":
             # Credential forms intentionally send only values the admin
             # supplied during this edit. Merge them with the existing config
@@ -401,6 +488,10 @@ async def update_server(server_id: int, data: ServerUpdate, db: AsyncSession = D
     if data.oauth_client_mode == "per_user":
         server.oauth_client_id = None
         server.oauth_client_secret = None
+        changed_scopes.append("oauth_client_secret")
+        changes.append({"field": "oauth_client_secret", "after": "Cleared when switching to per-user OAuth client credentials"})
+        if "oauth_client_mode" not in changed_fields:
+            changed_fields.append("oauth_client_mode")
 
     if server.is_enabled and server.auth_mode == AuthMode.shared and server.user_config_schema:
         cfg = decrypt_dict(server.auth_config or {}, context_prefix=f"server:{server.id}:auth_config")
@@ -408,6 +499,10 @@ async def update_server(server_id: int, data: ServerUpdate, db: AsyncSession = D
         if missing:
             raise HTTPException(400, f"Cannot enable {server.name} — missing required configuration: {', '.join(missing)}.")
 
+    if changed_fields or changed_scopes:
+        db.add(_server_change_audit(
+            user, server, "server.updated", fields=changed_fields, scopes=changed_scopes, changes=changes,
+        ))
     await db.commit()
     await db.refresh(server)
     return server
@@ -418,7 +513,7 @@ async def delete_server(
     server_id: int,
     delete_image: bool = False,
     db: AsyncSession = Depends(get_db),
-    _: User = Depends(require_admin),
+    user: User = Depends(require_admin),
 ):
     result = await db.execute(select(Server).where(Server.id == server_id))
     server = result.scalar_one_or_none()
@@ -472,6 +567,10 @@ async def delete_server(
     for conn in connections:
         await db.delete(conn)
 
+    db.add(_server_change_audit(
+        user, server, "server.deleted", fields=["deleted"],
+        changes=[{"field": "server", "before": server.name, "after": "Deleted"}],
+    ))
     await db.delete(server)
     await db.commit()
 
@@ -953,6 +1052,17 @@ async def save_user_credentials(
     if missing:
         raise HTTPException(400, f"Missing required credentials: {', '.join(missing)}")
     await save_credentials(db, server_id, current_user.id, credentials)
+    db.add(_server_change_audit(
+        current_user,
+        server,
+        "server.credentials.updated",
+        scopes=[str(key) for key, value in credentials.items() if value is not None and str(value)],
+        changes=[
+            {"field": str(key), "after": "Credential updated"}
+            for key, value in credentials.items() if value is not None and str(value)
+        ],
+    ))
+    await db.commit()
 
     # The per-user container (if any) already has the old credential baked
     # into its env — npx/uvx/docker processes only read env at start, so a

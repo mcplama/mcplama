@@ -84,7 +84,14 @@ export default function Users() {
   }
 
   const copyInviteUrl  = (token, id) => { copyToClipboard(inviteUrl(token)).then(() => { setCopied(id); setTimeout(() => setCopied(null), 2000) }) }
-  const deleteInvite   = async (id) => { await api.delete(`/auth/invites/${id}`); setInvites(i => i.filter(x => x.id !== id)) }
+  const deleteInvite   = async (id) => {
+    try {
+      await api.delete(`/auth/invites/${id}`)
+      setInvites(i => i.filter(x => x.id !== id))
+    } catch (e) {
+      alert(e.response?.data?.detail || 'Failed to delete invitation. Please try again.')
+    }
+  }
   const approveRequest = async (id) => {
     await api.post(`/requests/${id}/approve`)
     setRequests(rs => rs.filter(r => r.id !== id))
@@ -98,8 +105,13 @@ export default function Users() {
   }
   const revokeAccess   = async (req) => {
     if (!confirm(`Revoke ${req.user_name}'s access to ${req.server_name}?`)) return
-    await api.delete(`/servers/${req.server_id}/members/${req.user_id}`)
-    setRequests(rs => rs.filter(r => r.id !== req.id))
+    try {
+      await api.delete(`/servers/${req.server_id}/members/${req.user_id}`)
+      setRequests(rs => rs.filter(r => r.id !== req.id))
+      window.dispatchEvent(new Event('mcplama:access-requests-updated'))
+    } catch (e) {
+      alert(e.response?.data?.detail || 'Failed to revoke access. Please try again.')
+    }
   }
 
   const { page: iPage, setPage: setIPage, totalPages: iTotalPages, paginated: pInvites } = usePagination(invites)

@@ -18,6 +18,7 @@ from app.models.policy import Policy
 from app.api.v1.endpoints.auth import get_current_user, require_admin
 from app.core.ssrf import validate_remote_url
 from app.core.config import settings
+from app.services.change_audit import record_change
 
 policies_router = APIRouter(prefix="/policies", tags=["policies"])
 
@@ -87,7 +88,7 @@ async def list_policies(
 
 
 @policies_router.post("", response_model=PolicyOut, status_code=201)
-async def create_policy(data: PolicyCreate, db: AsyncSession = Depends(get_db), _: User = Depends(require_admin)):
+async def create_policy(data: PolicyCreate, db: AsyncSession = Depends(get_db), actor: User = Depends(require_admin)):
     await _validate_policy_config(data.policy_type, data.config)
 
     # Valid Policy model fields only
@@ -97,11 +98,36 @@ async def create_policy(data: PolicyCreate, db: AsyncSession = Depends(get_db), 
     # If multiple users selected, create one policy per user
     user_ids = data.user_ids if data.user_ids else ([data.user_id] if data.user_id else [None])
     last_policy = None
+    created_policies = []
     for uid in user_ids:
         d = {**base, "user_id": uid}
         policy = Policy(**d)
         db.add(policy)
+        created_policies.append(policy)
         last_policy = policy
+    await db.flush()
+    for policy in created_policies:
+        record_change(
+            db, actor, "policy.created", "policy",
+            resource_id=policy.id, resource_name=policy.name,
+            server_id=policy.server_id,
+            fields=["name", "description", "server_id", "user_id", "role", "policy_type", "config", "action", "is_enabled"],
+            changes=[
+                {"field": "policy", "after": "Created"},
+                {"field": "policy_type", "after": policy.policy_type},
+                {"field": "action", "after": policy.action},
+                {"field": "is_enabled", "after": policy.is_enabled},
+                {"field": "config_keys", "after": sorted((policy.config or {}).keys())},
+            ],
+            details={
+                "policy_type": policy.policy_type,
+                "action": policy.action,
+                "enabled": policy.is_enabled,
+                "config_keys": sorted((policy.config or {}).keys()),
+                "target_user_id": policy.user_id,
+                "target_role": policy.role,
+            },
+        )
     await db.commit()
     if last_policy:
         await db.refresh(last_policy)
@@ -109,38 +135,82 @@ async def create_policy(data: PolicyCreate, db: AsyncSession = Depends(get_db), 
 
 
 @policies_router.patch("/{policy_id}", response_model=PolicyOut)
-async def update_policy(policy_id: int, data: PolicyCreate, db: AsyncSession = Depends(get_db), _: User = Depends(require_admin)):
+async def update_policy(policy_id: int, data: PolicyCreate, db: AsyncSession = Depends(get_db), actor: User = Depends(require_admin)):
     result = await db.execute(select(Policy).where(Policy.id == policy_id))
     policy = result.scalar_one_or_none()
     if not policy:
         raise HTTPException(404, "Policy not found")
     valid_fields = {"name", "description", "is_enabled", "server_id", "user_id", "role", "policy_type", "config", "action"}
-    for k, v in data.model_dump(exclude_unset=True).items():
+    updates = data.model_dump(exclude_unset=True)
+    changed_fields = [k for k, v in updates.items() if k in valid_fields and getattr(policy, k) != v]
+    old_config = policy.config or {}
+    before_values = {k: getattr(policy, k) for k in changed_fields if k in {"name", "server_id", "user_id", "role", "policy_type", "action", "is_enabled"}}
+    for k, v in updates.items():
         if k in valid_fields:
             setattr(policy, k, v)
     await _validate_policy_config(policy.policy_type, policy.config or {})
+    if changed_fields:
+        changes = [
+            {"field": field, "before": before_values[field], "after": getattr(policy, field)}
+            for field in before_values
+        ]
+        if "config" in changed_fields:
+            changes.append({
+                "field": "config_keys",
+                "before": sorted(old_config.keys()),
+                "after": sorted((policy.config or {}).keys()),
+            })
+        record_change(
+            db, actor, "policy.updated", "policy",
+            resource_id=policy.id, resource_name=policy.name,
+            server_id=policy.server_id, fields=changed_fields,
+            changes=changes,
+            details={
+                "policy_type": policy.policy_type,
+                "action": policy.action,
+                "enabled": policy.is_enabled,
+                "config_keys": sorted(set(old_config) | set((policy.config or {}).keys())) if "config" in changed_fields else [],
+                "target_user_id": policy.user_id,
+                "target_role": policy.role,
+            },
+        )
     await db.commit()
     await db.refresh(policy)
     return policy
 
 
 @policies_router.delete("/{policy_id}", status_code=204)
-async def delete_policy(policy_id: int, db: AsyncSession = Depends(get_db), _: User = Depends(require_admin)):
+async def delete_policy(policy_id: int, db: AsyncSession = Depends(get_db), actor: User = Depends(require_admin)):
     result = await db.execute(select(Policy).where(Policy.id == policy_id))
     policy = result.scalar_one_or_none()
     if not policy:
         raise HTTPException(404, "Policy not found")
+    record_change(
+        db, actor, "policy.deleted", "policy",
+        resource_id=policy.id, resource_name=policy.name,
+        server_id=policy.server_id, fields=["deleted"],
+        changes=[{"field": "policy", "before": policy.name, "after": "Deleted"}],
+        details={"policy_type": policy.policy_type, "target_user_id": policy.user_id, "target_role": policy.role},
+    )
     await db.delete(policy)
     await db.commit()
 
 
 @policies_router.patch("/{policy_id}/toggle", response_model=PolicyOut)
-async def toggle_policy(policy_id: int, db: AsyncSession = Depends(get_db), _: User = Depends(require_admin)):
+async def toggle_policy(policy_id: int, db: AsyncSession = Depends(get_db), actor: User = Depends(require_admin)):
     result = await db.execute(select(Policy).where(Policy.id == policy_id))
     policy = result.scalar_one_or_none()
     if not policy:
         raise HTTPException(404, "Policy not found")
+    was_enabled = policy.is_enabled
     policy.is_enabled = not policy.is_enabled
+    record_change(
+        db, actor, "policy.updated", "policy",
+        resource_id=policy.id, resource_name=policy.name,
+        server_id=policy.server_id, fields=["is_enabled"],
+        changes=[{"field": "is_enabled", "before": was_enabled, "after": policy.is_enabled}],
+        details={"enabled": policy.is_enabled},
+    )
     await db.commit()
     await db.refresh(policy)
     return policy

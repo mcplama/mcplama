@@ -21,7 +21,7 @@ import ServerDetail   from './pages/ServerDetail'
 import ServerEdit     from './pages/ServerEdit'
 import Tools          from './pages/Tools'
 import Users          from './pages/Users'
-import Audit          from './pages/Audit'
+import ChangeAudit    from './pages/ChangeAudit'
 import SettingsPage   from './pages/SettingsPage'
 import Portal         from './pages/Portal'
 import AcceptInvite   from './pages/AcceptInvite'
@@ -113,7 +113,7 @@ export default function App() {
               <Route path="/tools"         element={<Protected><Tools /></Protected>} />
               <Route path="/policies"      element={<Protected><Policies /></Protected>} />
               <Route path="/users"         element={<Protected><Users /></Protected>} />
-              <Route path="/audit"         element={<Protected><Audit /></Protected>} />
+              <Route path="/audit"         element={<Protected><ChangeAudit /></Protected>} />
               <Route path="/activity"      element={<Protected><ActivityPage /></Protected>} />
               <Route path="/alerts"        element={<Protected><AlertsPage /></Protected>} />
               <Route path="/reports"       element={<Protected><ReportsPage /></Protected>} />

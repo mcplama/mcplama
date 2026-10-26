@@ -17,6 +17,7 @@ from app.models.server import Server
 from app.models.user import User
 from app.api.v1.endpoints.auth import get_current_user, require_admin
 from app.core.config import settings
+from app.services.change_audit import record_change
 
 router = APIRouter(prefix="/connections", tags=["connections"])
 
@@ -227,8 +228,25 @@ async def update_connection(
     if not conn:
         raise HTTPException(404, "Connection not found")
     changes = data.dict(exclude_unset=True)
+    old_active = conn.is_active
+    old_expiry = conn.expires_at
     for field, value in changes.items():
         setattr(conn, field, value)
+    if ("is_active" in changes and old_active != conn.is_active) or ("expires_at" in changes and old_expiry != conn.expires_at):
+        srv_result = await db.execute(select(Server).where(Server.id == conn.server_id))
+        server = srv_result.scalar_one_or_none()
+        target = await db.get(User, conn.user_id)
+        record_change(
+            db, user, "connection.updated", "connection",
+            resource_id=conn.id, resource_name=conn.label or (server.name if server else None),
+            server_id=conn.server_id,
+            fields=[field for field in ("is_active", "expires_at") if field in changes and getattr(conn, field) != (old_active if field == "is_active" else old_expiry)],
+            changes=[
+                *([{"field": "is_active", "before": old_active, "after": conn.is_active}] if old_active != conn.is_active else []),
+                *([{"field": "expires_at", "before": old_expiry.isoformat() if old_expiry else None, "after": conn.expires_at.isoformat() if conn.expires_at else None}] if old_expiry != conn.expires_at else []),
+            ],
+            details={"active": conn.is_active, "target_user_id": conn.user_id, "target_user_email": target.email if target else None},
+        )
     await db.commit()
     await db.refresh(conn)
     if changes.get("is_active") is False:
@@ -252,6 +270,15 @@ async def revoke_connection(connection_id: int, db: AsyncSession = Depends(get_d
     # Load server to know container details
     srv_result = await db.execute(select(Server).where(Server.id == conn.server_id))
     server = srv_result.scalar_one_or_none()
+    target = await db.get(User, conn.user_id)
+
+    record_change(
+        db, user, "connection.revoked", "connection",
+        resource_id=conn.id, resource_name=conn.label or (server.name if server else None),
+        server_id=conn.server_id, fields=["revoked"],
+        changes=[{"field": "connection", "before": "Active", "after": "Revoked"}],
+        details={"target_user_id": conn.user_id, "target_user_email": target.email if target else None},
+    )
 
     # Delete the connection record
     await db.delete(conn)

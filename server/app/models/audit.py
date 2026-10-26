@@ -27,4 +27,21 @@ class AuditLog(Base):
     meta: Mapped[Optional[dict]] = mapped_column(JSON, default=dict)
     request_body: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
+
+class ChangeAuditLog(Base):
+    """Administrative configuration history, kept separate from MCP activity."""
+    __tablename__ = "change_audit_logs"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    timestamp: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+    user_id: Mapped[Optional[int]] = mapped_column(Integer, nullable=True, index=True)
+    user_email: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    action: Mapped[str] = mapped_column(String(128), index=True)
+    resource_type: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    resource_id: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    resource_name: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    server_id: Mapped[Optional[int]] = mapped_column(Integer, nullable=True, index=True)
+    server_name: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    meta: Mapped[Optional[dict]] = mapped_column(JSON, default=dict)
+
 # Note: server_name is resolved dynamically in the API endpoint, not stored

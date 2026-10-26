@@ -58,13 +58,31 @@ There's no separate API-key mechanism for the management API — service-to-serv
 | `/gateway/config` | `gateway-config` | gateway name/URL settings |
 | `/users` | `users` | user management (list/update/delete) |
 | `/policies` | `policies` | access policies (who can call what) |
-| `/audit` | `audit` | audit log query |
+| `/audit` | `audit` | MCP activity and separate administrative change-audit queries |
 | `/alerts` | `alerts` | alert rules (create/toggle/delete) + on-demand check |
 | `/smtp` | `smtp` | outbound email config for invites, with a test-send endpoint |
 | — (root) | `requests` | access-request workflow: request access to a server, approve/deny, manage members |
 | — (root) | `mcp-auth` | MCP-specific OAuth: dynamic client registration, `/authorize`, `/token`, well-known discovery documents |
 
 Human-readable route groups and examples are in `/docs`; the direct endpoint tester is in `/swagger`; exact schemas for documented routes are in `/openapi.json`. Low-level MCP protocol plumbing and internal debug routes are intentionally omitted.
+
+### Audit endpoints
+
+`GET /api/v1/audit` returns MCP activity such as proxied tool calls. It accepts
+`limit`, `offset`, `search`, `server_id`, `status`, and `since` query parameters.
+
+`GET /api/v1/audit/changes` returns administrative change history separately.
+It covers server configuration and credentials, user invitations and account
+changes, policies, access requests, server access grants/revocations, and
+connection access changes. It accepts `limit`, `offset`, `search`, `server_id`,
+and `since`. Both endpoints return `X-Total-Count`, `X-Limit`, and `X-Offset`
+headers for pagination.
+
+Change-audit entries identify the actor, timestamp, action, and affected
+resource. Safe fields may include before/after values; credential values and
+policy configuration values are never logged. Credential key names and policy
+configuration key names may be listed to show which scopes or settings were
+affected.
 
 ## The `/connect/{token}` proxy
 

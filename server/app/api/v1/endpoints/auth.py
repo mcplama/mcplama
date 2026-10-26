@@ -14,6 +14,7 @@ from app.db.session import get_db
 from app.models.user import User, UserRole
 from app.core.security import verify_password, create_access_token, hash_password, decode_token
 from app.core.config import settings
+from app.services.change_audit import record_change
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login", auto_error=False)
@@ -316,6 +317,13 @@ async def create_invite(data: InviteCreate, db: AsyncSession = Depends(get_db), 
         expires_at=expires,
     )
     db.add(invite)
+    await db.flush()
+    record_change(
+        db, admin, "user.invite.created", "invite",
+        resource_id=invite.id, resource_name=invite.email,
+        fields=["email", "role"], details={"role": data.role},
+        changes=[{"field": "invitation", "after": "Created"}, {"field": "role", "after": data.role}],
+    )
     await db.commit()
     await db.refresh(invite)
 
@@ -394,6 +402,13 @@ async def accept_invite(token: str, data: AcceptInvite, response: Response, db: 
     )
     db.add(user)
     invite.accepted = True
+    await db.flush()
+    record_change(
+        db, user, "user.invite.accepted", "user",
+        resource_id=user.id, resource_name=user.email,
+        fields=["account_created"], details={"role": invite.role},
+        changes=[{"field": "account", "after": "Created from invitation"}, {"field": "role", "after": invite.role}],
+    )
     await db.commit()
     await db.refresh(user)
 
@@ -492,9 +507,15 @@ async def list_invites(db: AsyncSession = Depends(get_db), _: User = Depends(req
 
 
 @router.delete("/invites/{invite_id}", status_code=204)
-async def delete_invite(invite_id: int, db: AsyncSession = Depends(get_db), _: User = Depends(require_admin)):
+async def delete_invite(invite_id: int, db: AsyncSession = Depends(get_db), admin: User = Depends(require_admin)):
     from app.models.invite import Invite
     invite = (await db.execute(select(Invite).where(Invite.id == invite_id))).scalar_one_or_none()
     if invite:
+        record_change(
+            db, admin, "user.invite.revoked", "invite",
+            resource_id=invite.id, resource_name=invite.email,
+            fields=["invite_revoked"], details={"role": invite.role},
+            changes=[{"field": "invitation", "before": "Pending" if not invite.accepted else "Accepted", "after": "Revoked"}],
+        )
         await db.delete(invite)
         await db.commit()

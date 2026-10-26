@@ -3,7 +3,7 @@
 
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import {
-  LayoutDashboard, Package, Server, Link2, Activity,
+  LayoutDashboard, Package, Server, Link2, Activity, ClipboardList,
   Shield, Bell, Users, Settings, HelpCircle, Bug,
   type LucideIcon,
 } from 'lucide-react'
@@ -17,6 +17,7 @@ const mainItems: NavItem[] = [
   { to: '/connections', icon: Link2,           label: 'Connections'           },
   { to: '/catalog',     icon: Package,         label: 'Catalog'               },
   { to: '/activity',    icon: Activity,        label: 'Activity'              },
+  { to: '/audit',       icon: ClipboardList,   label: 'Audit Logs'             },
   { to: '/policies',    icon: Shield,          label: 'Policies'              },
   { to: '/alerts',      icon: Bell,            label: 'Alerts'                },
 ]

@@ -17,6 +17,7 @@ from app.models.server import Server
 from app.models.server_request import ServerRequest
 from app.models.connection import Connection
 from app.api.v1.endpoints.auth import get_current_user, require_admin
+from app.services.change_audit import record_change
 
 requests_router = APIRouter(tags=["requests"])
 
@@ -150,7 +151,7 @@ async def list_requests(
 async def approve_request(
     request_id: int,
     db: AsyncSession = Depends(get_db),
-    _: User = Depends(require_admin),
+    actor: User = Depends(require_admin),
 ):
     req = await db.get(ServerRequest, request_id)
     if not req:
@@ -182,6 +183,15 @@ async def approve_request(
         label=f"{server.name} connection",
     )
     db.add(conn)
+    target = await db.get(User, req.user_id)
+    record_change(
+        db, actor, "access.granted", "server_access",
+        resource_id=f"{server.id}:{req.user_id}", resource_name=server.name,
+        server_id=server.id,
+        fields=["approved_request", "connection_created"],
+        changes=[{"field": "server_access", "after": "Granted"}],
+        details={"target_user_id": req.user_id, "target_user_email": target.email if target else None},
+    )
     await db.commit()
     await db.refresh(conn)
     mcp_url = f"{gateway_url}/connect/{conn.token}"
@@ -199,12 +209,21 @@ async def approve_request(
 async def deny_request(
     request_id: int,
     db: AsyncSession = Depends(get_db),
-    _: User = Depends(require_admin),
+    actor: User = Depends(require_admin),
 ):
     req = await db.get(ServerRequest, request_id)
     if not req:
         raise HTTPException(404, "Request not found")
 
+    server = await db.get(Server, req.server_id)
+    target = await db.get(User, req.user_id)
+    record_change(
+        db, actor, "access.request.denied", "server_access",
+        resource_id=f"{req.server_id}:{req.user_id}", resource_name=server.name if server else None,
+        server_id=req.server_id, fields=["request_denied"],
+        changes=[{"field": "access_request", "after": "Denied"}],
+        details={"target_user_id": req.user_id, "target_user_email": target.email if target else None},
+    )
     await db.delete(req)
     await db.commit()
     return {"ok": True}
@@ -217,7 +236,7 @@ async def assign_user(
     server_id: int,
     user_id: int,
     db: AsyncSession = Depends(get_db),
-    _: User = Depends(require_admin),
+    actor: User = Depends(require_admin),
 ):
     server = await db.get(Server, server_id)
     if not server:
@@ -272,6 +291,13 @@ async def assign_user(
         label=f"{server.name} connection",
     )
     db.add(conn)
+    record_change(
+        db, actor, "access.granted", "server_access",
+        resource_id=f"{server.id}:{user.id}", resource_name=server.name,
+        server_id=server.id, fields=["user_assigned", "connection_created"],
+        changes=[{"field": "server_access", "after": "Granted"}],
+        details={"target_user_id": user.id, "target_user_email": user.email},
+    )
     await db.commit()
     await db.refresh(conn)
     mcp_url = f"{gateway_url}/connect/{conn.token}"
@@ -291,8 +317,10 @@ async def revoke_access(
     server_id: int,
     user_id: int,
     db: AsyncSession = Depends(get_db),
-    _: User = Depends(require_admin),
+    actor: User = Depends(require_admin),
 ):
+    server = await db.get(Server, server_id)
+    target = await db.get(User, user_id)
     # Deactivate connections
     result = await db.execute(
         select(Connection).where(
@@ -303,11 +331,12 @@ async def revoke_access(
             )
         )
     )
-    for conn in result.scalars().all():
+    revoked_connections = result.scalars().all()
+    for conn in revoked_connections:
         conn.is_active = False
 
     # Delete request record
-    await db.execute(
+    removed_request = await db.execute(
         delete(ServerRequest).where(
             and_(
                 ServerRequest.user_id == user_id,
@@ -315,6 +344,15 @@ async def revoke_access(
             )
         )
     )
+    if revoked_connections or (removed_request.rowcount or 0) > 0:
+        record_change(
+            db, actor, "access.revoked", "server_access",
+            resource_id=f"{server_id}:{user_id}", resource_name=server.name if server else None,
+            server_id=server_id,
+            fields=[*(["connection_deactivated"] if revoked_connections else []), *(["access_request_removed"] if (removed_request.rowcount or 0) > 0 else [])],
+            changes=[{"field": "server_access", "before": "Granted", "after": "Revoked"}],
+            details={"target_user_id": user_id, "target_user_email": target.email if target else None},
+        )
     await db.commit()
     return {"ok": True}
 

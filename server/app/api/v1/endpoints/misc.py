@@ -11,9 +11,10 @@ from sqlalchemy import select, desc, func, or_
 from pydantic import BaseModel
 from app.db.session import get_db
 from app.models.user import User, UserRole
-from app.models.audit import AuditLog
+from app.models.audit import AuditLog, ChangeAuditLog
 from app.models.server import Server
 from app.api.v1.endpoints.auth import get_current_user, require_admin
+from app.services.change_audit import record_change
 
 users_router = APIRouter(prefix="/users", tags=["users"])
 audit_router = APIRouter(prefix="/audit", tags=["audit"])
@@ -65,6 +66,21 @@ class AuditOut(BaseModel):
     class Config: from_attributes = True
 
 
+class ChangeAuditOut(BaseModel):
+    id: int
+    timestamp: datetime
+    user_id: Optional[int] = None
+    user_email: Optional[str] = None
+    action: str
+    resource_type: Optional[str] = None
+    resource_id: Optional[str] = None
+    resource_name: Optional[str] = None
+    server_id: Optional[int] = None
+    server_name: Optional[str] = None
+    meta: Optional[dict] = None
+    class Config: from_attributes = True
+
+
 @users_router.get("")
 async def list_users(
     db: AsyncSession = Depends(get_db),
@@ -93,8 +109,19 @@ async def update_user(user_id: int, data: UserUpdate, db: AsyncSession = Depends
     result = await db.execute(select(User).where(User.id == user_id))
     user = result.scalar_one_or_none()
     if not user: raise HTTPException(404, "User not found")
-    for k, v in data.model_dump(exclude_none=True).items():
+    updates = data.model_dump(exclude_none=True)
+    changed = {k: v for k, v in updates.items() if getattr(user, k) != v}
+    before = {k: getattr(user, k) for k in changed if k in {"role", "is_active"}}
+    for k, v in changed.items():
         setattr(user, k, v)
+    if changed:
+        record_change(
+            db, me, "user.updated", "user",
+            resource_id=user.id, resource_name=user.email,
+            fields=list(changed),
+            changes=[{"field": k, "before": before[k], "after": changed[k]} for k in before],
+            details={k: changed[k] for k in ("role", "is_active") if k in changed},
+        )
     await db.commit()
     await db.refresh(user)
     return user
@@ -106,6 +133,12 @@ async def delete_user(user_id: int, db: AsyncSession = Depends(get_db), me: User
     result = await db.execute(select(User).where(User.id == user_id))
     user = result.scalar_one_or_none()
     if not user: raise HTTPException(404, "User not found")
+    record_change(
+        db, me, "user.deleted", "user",
+        resource_id=user.id, resource_name=user.email,
+        fields=["deleted"], details={"role": user.role.value if hasattr(user.role, "value") else user.role},
+        changes=[{"field": "user", "before": "Active account", "after": "Deleted"}],
+    )
     await db.delete(user)
     await db.commit()
 
@@ -161,6 +194,47 @@ async def list_audit(
                 d.server_name = s.name
         out.append(d)
     data = jsonable_encoder(out)
+    return JSONResponse(content=data, headers={
+        "X-Total-Count": str(total),
+        "X-Limit": str(limit),
+        "X-Offset": str(offset),
+        "Access-Control-Expose-Headers": "X-Total-Count, X-Limit, X-Offset",
+    })
+
+
+@audit_router.get("/changes")
+async def list_change_audit(
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_admin),
+    limit: int = Query(20, le=2000),
+    offset: int = Query(0),
+    search: Optional[str] = Query(None),
+    server_id: Optional[int] = Query(None),
+    since: Optional[str] = Query(None),
+):
+    """List server configuration and credential changes, separate from MCP activity."""
+    q = select(ChangeAuditLog)
+    if since:
+        try:
+            since_dt = datetime.fromisoformat(since.replace("Z", "+00:00")).replace(tzinfo=None)
+            q = q.where(ChangeAuditLog.timestamp >= since_dt)
+        except ValueError:
+            pass
+    if server_id:
+        q = q.where(ChangeAuditLog.server_id == server_id)
+    if search:
+        term = f"%{search}%"
+        q = q.where(or_(
+            ChangeAuditLog.action.ilike(term),
+            ChangeAuditLog.user_email.ilike(term),
+            ChangeAuditLog.server_name.ilike(term),
+            ChangeAuditLog.resource_name.ilike(term),
+        ))
+    total = (await db.execute(select(func.count()).select_from(q.subquery()))).scalar_one()
+    logs = (await db.execute(
+        q.order_by(desc(ChangeAuditLog.timestamp)).limit(limit).offset(offset)
+    )).scalars().all()
+    data = jsonable_encoder([ChangeAuditOut.model_validate(log) for log in logs])
     return JSONResponse(content=data, headers={
         "X-Total-Count": str(total),
         "X-Limit": str(limit),
