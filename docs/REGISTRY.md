@@ -113,8 +113,7 @@ the catalog; it does not invoke tools or pass configured user credentials.
 
 V1 entries are validated against [`registry.schema.json`](../registry.schema.json);
 v2 entries use [`registry/v2.schema.json`](../registry/v2.schema.json). The
-backend's bundled fallback reads `registry/v2.json`; it does not assemble the
-catalog from files in `registry/servers/`.
+backend's bundled fallback reads [`registry/v2.json`](../registry/v2.json).
 
 ## Registry v2
 
