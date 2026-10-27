@@ -6,6 +6,7 @@ import { Search, Plus, Lock, CheckCircle, Package as PackageIcon, Settings, More
 import { useNavigate } from 'react-router-dom'
 import api from '../lib/api'
 import { Btn, Spinner, EmptyState, PageHeader } from '../components/ui'
+import Alert from '../components/kit/Alert'
 import { Paginator } from '../components/ui/Paginator'
 import { usePagination } from '../hooks/usePagination'
 import AddServerModal from './_AddServerModal'
@@ -33,11 +34,13 @@ export default function Catalog() {
   const [showOfficialOnly, setShowOfficialOnly] = useState(false)
   const [selected, setSelected]             = useState(null)
   const [refreshing, setRefreshing]         = useState(false)
+  const [registryFallback, setRegistryFallback] = useState(false)
   const navigate = useNavigate()
 
   useEffect(() => {
     Promise.all([api.get('/registry'), api.get('/servers', { params: { limit: 1000 } })])
       .then(([r, s]) => {
+        setRegistryFallback(r.headers?.['x-registry-source'] === 'fallback')
         const servers = s.data
         const customServers = servers.filter(sv => !sv.registry_id).map(customCatalogEntry)
         const registryServers = r.data.map(entry => ({
@@ -57,10 +60,12 @@ export default function Catalog() {
     setRefreshing(true)
     try {
       await api.post('/registry/refresh')
-      const [{ data }, { data: servers }] = await Promise.all([
+      const [registryResponse, { data: servers }] = await Promise.all([
         api.get('/registry'),
         api.get('/servers', { params: { limit: 1000 } }),
       ])
+      const { data } = registryResponse
+      setRegistryFallback(registryResponse.headers?.['x-registry-source'] === 'fallback')
       setRegistry([
         ...servers.filter(sv => !sv.registry_id).map(customCatalogEntry),
         ...data.map(entry => ({
@@ -133,6 +138,14 @@ export default function Catalog() {
           </div>
         }
       />
+
+      {registryFallback && (
+        <Alert
+          variant="warning"
+          title="Using bundled registry fallback"
+          message="The remote catalog is unavailable. These entries may not include the latest updates."
+        />
+      )}
 
       {/* Search + filters */}
       <div className="space-y-3">

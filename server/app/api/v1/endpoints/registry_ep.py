@@ -1,7 +1,7 @@
 # Copyright (c) 2026 MCPlama <dev@mcplama.com>
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
-from fastapi import APIRouter, Query, Depends, HTTPException
+from fastapi import APIRouter, Query, Depends, HTTPException, Response
 from typing import Optional
 from app.services import registry as reg_svc
 from app.core.config import settings
@@ -12,9 +12,11 @@ router = APIRouter(prefix="/registry", tags=["registry"])
 
 
 @router.get("")
-async def list_registry(q: Optional[str] = Query(None), category: Optional[str] = Query(None),
-                        runtime: Optional[str] = Query(None), auth_type: Optional[str] = Query(None)):
+async def list_registry(response: Response, q: Optional[str] = Query(None),
+                        category: Optional[str] = Query(None), runtime: Optional[str] = Query(None),
+                        auth_type: Optional[str] = Query(None)):
     servers = reg_svc.search(q or "", category or "", runtime or "", auth_type or "")
+    response.headers["X-Registry-Source"] = reg_svc.get_source()
     for s in servers:
         _resolve_urls(s)
     return servers

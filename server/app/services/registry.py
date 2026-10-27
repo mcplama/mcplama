@@ -22,6 +22,7 @@ def _load() -> list:
             payload = resp.json()
             servers = payload.get("servers") if isinstance(payload, dict) and payload.get("version") == 2 else payload
             if isinstance(servers, list):
+                _cache["source"] = "remote"
                 return servers
         except Exception as e:
             import logging
@@ -29,6 +30,7 @@ def _load() -> list:
                 f"Failed to fetch registry from {url}: {e} — falling back to local"
             )
 
+    _cache["source"] = "fallback"
     return _load_local()
 
 
@@ -52,6 +54,11 @@ def get_all() -> list:
     if "servers" not in _cache:
         _cache["servers"] = _load()
     return _cache["servers"]
+
+
+def get_source() -> str:
+    get_all()
+    return _cache.get("source", "fallback")
 
 
 def get_by_id(server_id: str) -> Optional[dict]:
