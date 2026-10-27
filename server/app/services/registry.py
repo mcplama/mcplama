@@ -34,9 +34,7 @@ def _load() -> list:
 
 def _load_local() -> list:
     path = getattr(settings, "REGISTRY_LOCAL_PATH", None)
-    if not path:
-        return []
-    if not os.path.isdir(path):
+    if not path or not os.path.isdir(path):
         path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../registry"))
     v2_path = os.path.join(path, "v2.json")
     if os.path.isfile(v2_path):
@@ -47,18 +45,7 @@ def _load_local() -> list:
                 return payload["servers"]
         except Exception:
             pass
-    servers = []
-    servers_dir = os.path.join(path, "servers")
-    if not os.path.exists(servers_dir):
-        return servers
-    for fname in os.listdir(servers_dir):
-        if fname.endswith(".json") and not fname.startswith("_"):
-            try:
-                with open(os.path.join(servers_dir, fname)) as f:
-                    servers.append(json.load(f))
-            except Exception:
-                pass
-    return servers
+    return []
 
 
 def get_all() -> list:

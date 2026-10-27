@@ -112,8 +112,9 @@ performs MCP `initialize` and `tools/list` to compare the live endpoint with
 the catalog; it does not invoke tools or pass configured user credentials.
 
 V1 entries are validated against [`registry.schema.json`](../registry.schema.json);
-v2 entries use [`registry/v2.schema.json`](../registry/v2.schema.json). Add new files to
-`registry/servers/` only when they are also included in the canonical catalog.
+v2 entries use [`registry/v2.schema.json`](../registry/v2.schema.json). The
+backend's bundled fallback reads `registry/v2.json`; it does not assemble the
+catalog from files in `registry/servers/`.
 
 ## Registry v2
 
@@ -121,7 +122,8 @@ New MCPlama releases load the versioned catalog in [`registry/v2.json`](../regis
 whose envelope is `{ "version": 2, "servers": [...] }`. It preserves the v1
 entries and adds the v2 integrations at the start of the list. Older releases
 continue loading the unchanged top-level array in [`registry.json`](../registry.json).
-Validate changes to both catalogs with `python tools/validate_registry.py`.
+Add new entries to `registry/v2.json` and keep `registry.json` in sync for v1
+consumers. Validate changes to both catalogs with `python tools/validate_registry.py`.
 
 The v2 starter order is PostgreSQL, Filesystem, Brave Search, Playwright, Slack,
 Jira, Obsidian, Notion, Figma, Resend, RevenueCat, then Google Workspace MCP
