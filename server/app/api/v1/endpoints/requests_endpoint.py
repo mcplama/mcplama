@@ -16,6 +16,7 @@ from app.models.user import User
 from app.models.server import Server
 from app.models.server_request import ServerRequest
 from app.models.connection import Connection
+from app.models.user_group import GroupMembership, GroupServerAccess, UserGroup
 from app.api.v1.endpoints.auth import get_current_user, require_admin
 from app.services.change_audit import record_change
 
@@ -94,7 +95,7 @@ async def my_requests(
         .order_by(ServerRequest.created_at.desc())
     )
     rows = result.all()
-    return [
+    items = [
         {
             "id": req.id,
             "server_id": req.server_id,
@@ -106,6 +107,41 @@ async def my_requests(
         }
         for req, srv in rows
     ]
+    direct_status = {}
+    for item in items:
+        if item["status"] == "approved":
+            direct_status[item["server_id"]] = "approved"
+    grouped = await db.execute(
+        select(UserGroup.id, UserGroup.name, Server.id, Server.name, Server.logo_url)
+        .join(GroupMembership, GroupMembership.group_id == UserGroup.id)
+        .join(GroupServerAccess, GroupServerAccess.group_id == UserGroup.id)
+        .join(Server, Server.id == GroupServerAccess.server_id)
+        .where(GroupMembership.user_id == current_user.id)
+    )
+    existing_server_ids = {row["server_id"] for row in items}
+    for group_id, group_name, server_id, server_name, logo_url in grouped:
+        if direct_status.get(server_id) == "approved":
+            continue
+        if server_id in existing_server_ids:
+            for item in items:
+                if item["server_id"] == server_id:
+                    item["status"] = "approved"
+                    item["source"] = "group"
+                    item["message"] = f"Access granted through group: {group_name}"
+                    break
+            continue
+        items.append({
+            "id": f"group-{group_id}-{server_id}",
+            "server_id": server_id,
+            "server_name": server_name,
+            "server_logo_url": logo_url,
+            "status": "approved",
+            "message": f"Access granted through group: {group_name}",
+            "source": "group",
+            "created_at": None,
+        })
+        existing_server_ids.add(server_id)
+    return items
 
 
 # ── Admin: list all requests ──────────────────────────────────────────────────
@@ -377,12 +413,28 @@ async def server_members(
         .order_by(ServerRequest.updated_at.desc())
     )
     rows = result.all()
-    return [
-        {
+    members = {
+        user.id: {
             "user_id": user.id,
             "user_name": user.name,
             "user_email": user.email,
             "approved_at": req.updated_at,
+            "source": "direct",
+            "groups": [],
         }
         for req, user in rows
-    ]
+    }
+    group_rows = await db.execute(
+        select(UserGroup.name, User.id, User.name, User.email)
+        .join(GroupMembership, GroupMembership.group_id == UserGroup.id)
+        .join(GroupServerAccess, GroupServerAccess.group_id == UserGroup.id)
+        .join(User, User.id == GroupMembership.user_id)
+        .where(GroupServerAccess.server_id == server_id)
+    )
+    for group_name, user_id, user_name, user_email in group_rows:
+        member = members.setdefault(user_id, {
+            "user_id": user_id, "user_name": user_name, "user_email": user_email,
+            "approved_at": None, "source": "group", "groups": [],
+        })
+        member["groups"].append(group_name)
+    return list(members.values())

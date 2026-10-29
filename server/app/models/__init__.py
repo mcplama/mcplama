@@ -13,6 +13,7 @@ from app.models.gateway_config import GatewayConfig
 from app.models.invite import Invite
 from app.models.oauth_state import OAuthState
 from app.models.server_request import ServerRequest
+from app.models.user_group import UserGroup, GroupMembership, GroupServerAccess
 from app.models.smtp_config import SmtpConfig
 
 __all__ = [
@@ -29,5 +30,8 @@ __all__ = [
     "Invite",
     "OAuthState",
     "ServerRequest",
+    "UserGroup",
+    "GroupMembership",
+    "GroupServerAccess",
     "SmtpConfig",
 ]

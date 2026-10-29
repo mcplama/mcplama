@@ -2,19 +2,21 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
 from datetime import datetime
-from typing import List, Optional
+from typing import List, Optional, Literal
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import JSONResponse
 from fastapi.encoders import jsonable_encoder
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, desc, func, or_
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, field_validator
 from app.db.session import get_db
 from app.models.user import User, UserRole
 from app.models.audit import AuditLog, ChangeAuditLog
 from app.models.server import Server
 from app.api.v1.endpoints.auth import get_current_user, require_admin
 from app.services.change_audit import record_change
+from app.core.security import hash_password
+from app.core.config import settings
 
 users_router = APIRouter(prefix="/users", tags=["users"])
 audit_router = APIRouter(prefix="/audit", tags=["audit"])
@@ -44,6 +46,35 @@ class UserUpdate(BaseModel):
     name: Optional[str] = None
     role: Optional[str] = None
     is_active: Optional[bool] = None
+
+
+class UserCreate(BaseModel):
+    email: str = Field(min_length=3, max_length=255)
+    name: str = Field(min_length=1, max_length=255)
+    password: str = Field(min_length=8)
+    role: Literal["admin", "member"] = "member"
+
+    @field_validator("email", "name")
+    @classmethod
+    def trim_values(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("This field is required")
+        return value
+
+    @field_validator("email")
+    @classmethod
+    def validate_email(cls, value: str) -> str:
+        if "@" not in value or value.startswith("@") or value.endswith("@"):
+            raise ValueError("Enter a valid email address")
+        return value.lower()
+
+    @field_validator("password")
+    @classmethod
+    def validate_password(cls, value: str) -> str:
+        if len(value) < 8:
+            raise ValueError("Password must be at least 8 characters")
+        return value
 
 
 class AuditOut(BaseModel):
@@ -102,6 +133,37 @@ async def list_users(
         "X-Offset": str(offset),
         "Access-Control-Expose-Headers": "X-Total-Count, X-Limit, X-Offset",
     })
+
+
+@users_router.post("", response_model=UserOut, status_code=201)
+async def create_user(data: UserCreate, db: AsyncSession = Depends(get_db), admin: User = Depends(require_admin)):
+    existing = (await db.execute(select(User).where(func.lower(User.email) == data.email))).scalar_one_or_none()
+    if existing:
+        raise HTTPException(400, f"{data.email} already has an account")
+
+    if settings.MAX_USERS > 0:
+        user_count = (await db.execute(select(func.count(User.id)))).scalar() or 0
+        if user_count >= settings.MAX_USERS:
+            raise HTTPException(403, f"Community edition is limited to {settings.MAX_USERS} users. Upgrade to Enterprise for more.")
+
+    user = User(
+        email=data.email,
+        name=data.name,
+        hashed_password=hash_password(data.password),
+        role=UserRole(data.role),
+        is_active=True,
+    )
+    db.add(user)
+    await db.flush()
+    record_change(
+        db, admin, "user.created", "user",
+        resource_id=user.id, resource_name=user.email,
+        fields=["email", "name", "role"], details={"role": data.role},
+        changes=[{"field": "account", "after": "Created by admin"}, {"field": "role", "after": data.role}],
+    )
+    await db.commit()
+    await db.refresh(user)
+    return user
 
 
 @users_router.patch("/{user_id}", response_model=UserOut)

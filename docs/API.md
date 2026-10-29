@@ -41,7 +41,7 @@ Most routes are mounted under `/api/v1` (see `app.include_router(..., prefix=P)`
 - `POST /api/v1/auth/forgot-password` always returns `202`, whether or not the email matches an account — the response can't be used to enumerate registered emails. No-op if SMTP isn't configured. Rate-limited (5 / 5min per IP).
 - `POST /api/v1/auth/reset-password` redeems the token from the emailed link and sets a new password. The token is hashed at rest, single-use, and expires after 1 hour.
 - `POST /api/v1/auth/setup` is the initial admin bootstrap endpoint. It only works before an admin account exists.
-- There is no public self-service signup endpoint. Users join through admin-created invite links.
+- There is no public self-service signup endpoint. Admins can create users directly through `POST /api/v1/users` or let users join through admin-created invite links.
 
 There's no separate API-key mechanism for the management API — service-to-service/API access should go through a `/connect/{token}` link instead (see below), which is scoped to one user × one installed MCP server.
 
@@ -56,7 +56,8 @@ There's no separate API-key mechanism for the management API — service-to-serv
 | `/registry` | `registry` | the browsable v2 MCP server catalog and admin-only remote endpoint inspection |
 | `/gateway` | `gateway` | gateway-wide stats, Claude Desktop config helper |
 | `/gateway/config` | `gateway-config` | gateway name/URL settings |
-| `/users` | `users` | user management (list/update/delete) |
+| `/users` | `users` | user management (list/create/update/delete) |
+| `/groups` | `groups` | user groups and MCP server grants (admin only) |
 | `/policies` | `policies` | access policies (who can call what) |
 | `/audit` | `audit` | MCP activity and separate administrative change-audit queries |
 | `/alerts` | `alerts` | alert rules (create/toggle/delete) + on-demand check |
@@ -65,6 +66,12 @@ There's no separate API-key mechanism for the management API — service-to-serv
 | — (root) | `mcp-auth` | MCP-specific OAuth: dynamic client registration, `/authorize`, `/token`, well-known discovery documents |
 
 Human-readable route groups and examples are in `/docs`; the direct endpoint tester is in `/swagger`; exact schemas for documented routes are in `/openapi.json`. Low-level MCP protocol plumbing and internal debug routes are intentionally omitted.
+
+### User provisioning and groups
+
+`POST /api/v1/users` is admin-only and creates an active user account immediately. It accepts a name, email, role (`member` or `admin`), and an initial password of at least eight characters. The password is hashed before storage and is never included in responses or audit details. This endpoint enforces the configured user limit and rejects an email that already belongs to an account. Admins can also continue creating invitations through `POST /api/v1/auth/invite`.
+
+Group management is admin-only. `GET /api/v1/groups` lists groups with their members and server grants. Create and update groups with `POST /api/v1/groups` and `PATCH /api/v1/groups/{group_id}`; delete them with `DELETE /api/v1/groups/{group_id}`. Add or remove a user with `POST` or `DELETE /api/v1/groups/{group_id}/members/{user_id}`. Grant or revoke server access with `POST` or `DELETE /api/v1/groups/{group_id}/servers/{server_id}`. Group membership and grants are checked by the MCP connection proxy alongside existing approved access requests and administrator access. Grant or membership removal deactivates connections that no longer have any access source.
 
 ### Audit endpoints
 

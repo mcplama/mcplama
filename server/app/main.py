@@ -40,6 +40,7 @@ from app.models.server_request import ServerRequest as _ServerRequest
 from app.models.oauth_state import OAuthState as _OAuthState
 from app.api.v1.endpoints.gateway_config_endpoint import gateway_config_router
 from app.api.v1.endpoints.requests_endpoint import requests_router
+from app.api.v1.endpoints.groups_endpoint import groups_router
 from app.api.v1.endpoints.oauth_flow import oauth_router as oauth_flow_router
 from app.api.v1.endpoints.diagnostics import diagnostics_router
 from app.api.v1.endpoints.version_check import router as version_router
@@ -371,6 +372,7 @@ app.include_router(alerts_router, prefix=P)
 app.include_router(smtp_router, prefix=P)
 app.include_router(gateway_config_router, prefix=P)
 app.include_router(requests_router, prefix=P)
+app.include_router(groups_router, prefix=P)
 app.include_router(oauth_flow_router, prefix=P)
 app.include_router(diagnostics_router, prefix=P)
 app.include_router(version_router, prefix=P)

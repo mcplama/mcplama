@@ -32,7 +32,7 @@ AI client (Claude Desktop, Cursor, VS Code)
 backend
   ├── resolve token        → user + server        (401 + RFC 9728 challenge if unknown)
   ├── validate Origin      → 403 if cross-origin  (DNS-rebinding guard)
-  ├── check access grant   → members need an approved request
+  ├── check access grant   → admin, approved request, or group server grant
   ├── evaluate policies    → fails CLOSED; a denial is a JSON-RPC error, not a 403
   ├── inject credentials   → shared secret, per-user token, or upstream OAuth
   ├── write audit row      → proxy.call (this is also the rate-limit ledger)

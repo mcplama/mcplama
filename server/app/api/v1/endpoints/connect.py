@@ -280,21 +280,11 @@ async def _handle(token: str, request: Request, path: str = ""):
 
     # ── Access control: members need approved request ─────────────────────────
     from app.models.user import User as UserModel
-    from app.models.server_request import ServerRequest
-    from sqlalchemy import and_
     async with AsyncSessionLocal() as _db:
         conn_user = await _db.get(UserModel, conn.user_id)
         if conn_user and conn_user.role != "admin":
-            access = await _db.execute(
-                select(ServerRequest).where(
-                    and_(
-                        ServerRequest.user_id == conn.user_id,
-                        ServerRequest.server_id == server.id,
-                        ServerRequest.status == "approved",
-                    )
-                )
-            )
-            if not access.scalar_one_or_none():
+            from app.services.access_control import has_server_access
+            if not await has_server_access(_db, conn.user_id, server.id):
                 raise HTTPException(403, "Access not granted. Request access from your portal.")
 
     # Better error for upstream 401

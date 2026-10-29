@@ -43,6 +43,8 @@ MCPlama gives you one control point:
 - 🌐 Controlled MCP connection URLs for your AI clients
 - 🔐 Centralized OAuth and API credentials
 - 👥 User and server access policies
+- 👥 Group-based MCP server grants and direct user provisioning
+- 🗺️ An MCP infrastructure map for exploring users, connections, servers, and tools
 - 📋 Separate MCP activity and administrative change audit logs
 - 📦 MCP server catalog and lifecycle management
 - 🛡️ Separate broker boundary for MCP container execution
@@ -127,6 +129,10 @@ See [Registry documentation](docs/REGISTRY.md#remote-mcp-and-oauth) for remote c
 ### Audit logs
 
 The **Activity** page records MCP calls. **Audit Logs** is a separate admin view for server configuration and credential changes, invitations, user access changes, policies, and access grants or revocations. Entries show who made the change, when, the affected resource, and a safe summary of fields or scopes. Secret values are never recorded.
+
+### Users, groups, and the MCP map
+
+In **Users**, administrators can invite a teammate by email or link, or choose **Add user** to provision an account directly with an initial password. In **Groups**, administrators can organize users and grant MCP server access to a group. A member's group grant is checked when they connect; existing direct access requests remain supported. The **Permission Map** page provides a visual overview of configured users, connections, servers, and discovered tools. It distinguishes configured relationships from active connection state and only shows access relationships supported by MCPlama's authorization data.
 
 ## Member portal
 

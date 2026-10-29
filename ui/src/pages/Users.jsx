@@ -40,6 +40,8 @@ export default function Users() {
   const [loading, setLoading]       = useState(true)
   const [showInvite, setShowInvite] = useState(false)
   const [inviteForm, setInviteForm] = useState({ email: '', role: 'member' })
+  const [createAccount, setCreateAccount] = useState(false)
+  const [userForm, setUserForm] = useState({ name: '', password: '' })
   const [inviting, setInviting]     = useState(false)
   const [copied, setCopied]         = useState(null)
 
@@ -81,6 +83,20 @@ export default function Users() {
       setInviteForm({ email: '', role: 'member' })
       if (!sendEmail) copyToClipboard(inviteUrl(data.token)).then(() => { setCopied('new'); setTimeout(() => setCopied(null), 3000) })
     } catch (e) { alert(e.response?.data?.detail || 'Failed to create invite') } finally { setInviting(false) }
+  }
+
+  const createUser = async () => {
+    if (!inviteForm.email.trim() || !userForm.name.trim() || userForm.password.length < 8) return
+    setInviting(true)
+    try {
+      await api.post('/users', { email: inviteForm.email, name: userForm.name, password: userForm.password, role: inviteForm.role })
+      setShowInvite(false)
+      setCreateAccount(false)
+      setInviteForm({ email: '', role: 'member' })
+      setUserForm({ name: '', password: '' })
+      setActiveTab('team')
+      reloadUsers()
+    } catch (e) { alert(e.response?.data?.detail || 'Failed to create user') } finally { setInviting(false) }
   }
 
   const copyInviteUrl  = (token, id) => { copyToClipboard(inviteUrl(token)).then(() => { setCopied(id); setTimeout(() => setCopied(null), 2000) }) }
@@ -154,14 +170,24 @@ export default function Users() {
                 </button>
               ))}
             </div>
-            <Button
-              variant="primary"
-              size="sm"
-              startIcon={<Plus size={14} />}
-              onClick={() => { setActiveTab('invitations'); setShowInvite(true) }}
-            >
-              Invite user
-            </Button>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                startIcon={<Plus size={14} />}
+                onClick={() => { setActiveTab('invitations'); setCreateAccount(false); setShowInvite(true) }}
+              >
+                Invite user
+              </Button>
+              <Button
+                variant="primary"
+                size="sm"
+                startIcon={<Plus size={14} />}
+                onClick={() => { setActiveTab('invitations'); setCreateAccount(true); setShowInvite(true) }}
+              >
+                Add user
+              </Button>
+            </div>
           </div>
         </div>
 
@@ -275,8 +301,8 @@ export default function Users() {
           <>
             {showInvite && (
               <div className="border-b border-gray-200 bg-gray-50 px-5 py-5 dark:border-gray-800 dark:bg-white/[0.02] space-y-4 animate-fade-in">
-                <p className="text-sm font-semibold text-gray-800 dark:text-white/90">Invite a new team member</p>
-                <div className="flex gap-3">
+                <div className="flex flex-wrap items-center justify-between gap-2"><p className="text-sm font-semibold text-gray-800 dark:text-white/90">{createAccount ? 'Create a user account' : 'Invite a new team member'}</p><button type="button" onClick={() => setCreateAccount(v => !v)} className="text-sm font-medium text-brand-500 hover:text-brand-600 dark:text-brand-400">{createAccount ? 'Use an invitation instead' : 'Create user directly'}</button></div>
+                <div className="flex flex-col gap-3 sm:flex-row">
                   <input
                     className="flex-[2] rounded-lg px-3 py-2.5 text-sm bg-white border border-gray-300 text-gray-800 outline-none focus:border-brand-300 dark:bg-gray-900 dark:border-gray-700 dark:text-white/90"
                     type="email" value={inviteForm.email}
@@ -285,6 +311,12 @@ export default function Users() {
                     onKeyDown={e => e.key === 'Enter' && createInvite(false)}
                     autoFocus
                   />
+                  {createAccount && <input
+                    className="flex-[2] rounded-lg px-3 py-2.5 text-sm bg-white border border-gray-300 text-gray-800 outline-none focus:border-brand-300 dark:bg-gray-900 dark:border-gray-700 dark:text-white/90"
+                    type="text" value={userForm.name}
+                    onChange={e => setUserForm(f => ({ ...f, name: e.target.value }))}
+                    placeholder="Full name" aria-label="Full name"
+                  />}
                   <select
                     className="flex-1 rounded-lg px-3 py-2.5 text-sm bg-white border border-gray-300 text-gray-800 outline-none dark:bg-gray-900 dark:border-gray-700 dark:text-white/90"
                     value={inviteForm.role} onChange={e => setInviteForm(f => ({ ...f, role: e.target.value }))}>
@@ -292,14 +324,22 @@ export default function Users() {
                     <option value="admin">Admin</option>
                   </select>
                 </div>
+                {createAccount && <div className="space-y-1"><input
+                  className="w-full rounded-lg px-3 py-2.5 text-sm bg-white border border-gray-300 text-gray-800 outline-none focus:border-brand-300 dark:bg-gray-900 dark:border-gray-700 dark:text-white/90"
+                  type="password" autoComplete="new-password" value={userForm.password}
+                  onChange={e => setUserForm(f => ({ ...f, password: e.target.value }))}
+                  placeholder="Initial password (at least 8 characters)" aria-label="Initial password" minLength={8}
+                /><p className="text-xs text-gray-400">Set an initial password for the user to sign in. The password is never shown again.</p></div>}
                 <div className="flex gap-2 flex-wrap">
-                  <Button variant="primary" size="sm" onClick={() => createInvite(true)} disabled={inviting}>Send by email</Button>
-                  <Button variant="outline" size="sm" onClick={() => createInvite(false)} disabled={inviting}>
-                    {copied === 'new' ? '✓ Link copied!' : 'Copy link instead'}
-                  </Button>
+                  {createAccount ? <Button variant="primary" size="sm" onClick={createUser} disabled={inviting || !inviteForm.email.trim() || !userForm.name.trim() || userForm.password.length < 8}>{inviting ? 'Creating…' : 'Create user'}</Button> : <>
+                    <Button variant="primary" size="sm" onClick={() => createInvite(true)} disabled={inviting}>Send by email</Button>
+                    <Button variant="outline" size="sm" onClick={() => createInvite(false)} disabled={inviting}>
+                      {copied === 'new' ? '✓ Link copied!' : 'Copy link instead'}
+                    </Button>
+                  </>}
                   <Button variant="outline" size="sm" onClick={() => setShowInvite(false)}>Cancel</Button>
                 </div>
-                <p className="text-xs text-gray-400">Email requires SMTP configured in Settings. Copy link works without email.</p>
+                {!createAccount && <p className="text-xs text-gray-400">Email requires SMTP configured in Settings. Copy link works without email.</p>}
               </div>
             )}
             <div className="overflow-x-auto">

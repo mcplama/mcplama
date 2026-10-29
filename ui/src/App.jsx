@@ -32,6 +32,8 @@ import { Policies }       from './pages/PoliciesPage'
 import ActivityPage from './pages/ActivityPage'
 import AlertsPage  from './pages/AlertsPage'
 import ReportsPage from './pages/ReportsPage'
+import GroupsPage from './pages/GroupsPage'
+import McpOverview from './pages/McpOverview'
 
 function Splash() {
   return (
@@ -105,6 +107,8 @@ export default function App() {
 
               {/* Admin */}
               <Route path="/"              element={<Protected><Dashboard /></Protected>} />
+              <Route path="/permission-map" element={<Protected><McpOverview /></Protected>} />
+              <Route path="/mcp-overview" element={<Protected><McpOverview /></Protected>} />
               <Route path="/catalog"       element={<Protected><Catalog /></Protected>} />
               <Route path="/servers"       element={<Protected><Servers /></Protected>} />
               <Route path="/servers/:id"   element={<Protected><ServerDetail /></Protected>} />
@@ -113,6 +117,7 @@ export default function App() {
               <Route path="/tools"         element={<Protected><Tools /></Protected>} />
               <Route path="/policies"      element={<Protected><Policies /></Protected>} />
               <Route path="/users"         element={<Protected><Users /></Protected>} />
+              <Route path="/groups"        element={<Protected><GroupsPage /></Protected>} />
               <Route path="/audit"         element={<Protected><ChangeAudit /></Protected>} />
               <Route path="/activity"      element={<Protected><ActivityPage /></Protected>} />
               <Route path="/alerts"        element={<Protected><AlertsPage /></Protected>} />

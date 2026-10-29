@@ -3,8 +3,8 @@
 
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import {
-  LayoutDashboard, Package, Server, Link2, Activity, ClipboardList,
-  Shield, Bell, Users, Settings, HelpCircle, Bug,
+  LayoutDashboard, Package, Server, Link2, Activity, ClipboardList, Network,
+  Shield, Bell, Users, UsersRound, Settings, HelpCircle, Bug,
   type LucideIcon,
 } from 'lucide-react'
 import { useSidebar } from '../../context/SidebarContext'
@@ -13,6 +13,7 @@ type NavItem = { to: string; icon: LucideIcon; label: string; end?: boolean }
 
 const mainItems: NavItem[] = [
   { to: '/',            icon: LayoutDashboard, label: 'Overview',    end: true },
+  { to: '/permission-map', icon: Network,       label: 'Permission Map'        },
   { to: '/servers',     icon: Server,          label: 'Servers'               },
   { to: '/connections', icon: Link2,           label: 'Connections'           },
   { to: '/catalog',     icon: Package,         label: 'Catalog'               },
@@ -24,6 +25,7 @@ const mainItems: NavItem[] = [
 
 const mgmtItems: NavItem[] = [
   { to: '/users',    icon: Users,    label: 'Users'    },
+  { to: '/groups',   icon: UsersRound, label: 'Groups' },
   { to: '/settings', icon: Settings, label: 'Settings' },
 ]
 
