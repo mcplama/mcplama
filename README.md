@@ -13,11 +13,12 @@
 
 <p align="center">
   <a href="https://github.com/mcplama/mcplama/stargazers"><img src="https://img.shields.io/github/stars/mcplama/mcplama?style=social" alt="GitHub stars"></a>
+  <a href="https://github.com/mcplama/mcplama/releases/latest"><img src="https://img.shields.io/github/v/release/mcplama/mcplama?label=latest%20release" alt="Latest release"></a>
   <a href="https://github.com/mcplama/mcplama/blob/main/LICENSE"><img src="https://img.shields.io/github/license/mcplama/mcplama" alt="License"></a>
   <a href="https://hub.docker.com/r/mcplama/mcplama"><img src="https://img.shields.io/docker/pulls/mcplama/mcplama" alt="Docker pulls"></a>
 </p>
 
-MCPlama is a self-hosted MCP gateway and control plane for developers and teams who want to run multiple MCP servers without scattered credentials, duplicated client configuration, or unclear access.
+MCPlama is a self-hosted MCP gateway and control plane for administrators and organizations operating AI agent infrastructure. It centralizes MCP server management, credentials, access policies, client connectivity, and audit visibility.
 
 Use it to centralize MCP server lifecycle, credentials, access policies, connections, and audit events while your AI clients connect through controlled MCP endpoints.
 
@@ -43,15 +44,15 @@ MCPlama gives you one control point:
 - 🌐 Controlled MCP connection URLs for your AI clients
 - 🔐 Centralized OAuth and API credentials
 - 👥 User and server access policies
-- 👥 Group-based MCP server grants and direct user provisioning
-- 🗺️ An MCP infrastructure map for exploring users, connections, servers, and tools
-- 📋 Separate MCP activity and administrative change audit logs
+- 👥 Group membership and MCP server grants, alongside direct user provisioning
+- 🗺️ Permission Map for exploring users, connections, servers, and registered tools
+- 📋 MCP activity logs and administrative audit logs for configuration and access changes
 - 📦 MCP server catalog and lifecycle management
 - 🛡️ Separate broker boundary for MCP container execution
 
 Start locally with Docker. Move to shared team infrastructure when you need it.
 
-![MCPlama registry showing available MCP servers.](docs/static/img/mcplama_registry.png)
+![MCPlama registry showing available MCP servers.](docs/static/img/mcplama-registry-v2.png)
 
 ## Documentation
 
@@ -138,7 +139,7 @@ In **Users**, administrators can invite a teammate by email or link, or choose *
 
 Team members can see and connect to the MCP servers available to them without receiving the underlying service credentials.
 
-![MCPlama member portal showing available MCP servers and connection status.](docs/static/img/mcplama-member-redacted.png)
+![MCPlama member portal showing available MCP servers and connection status.](docs/static/img/mcplama-member-v2.png)
 
 ## How it works
 
