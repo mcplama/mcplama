@@ -7,7 +7,7 @@ from typing import ClassVar, List
 
 class Settings(BaseSettings):
     APP_NAME: str = "MCPlama"
-    VERSION: str = "1.0.2"
+    VERSION: str = "1.1.0"
     ENVIRONMENT: str = "development"
 
     DATABASE_URL: str
