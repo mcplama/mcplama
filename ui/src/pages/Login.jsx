@@ -1,7 +1,7 @@
 /* Copyright (c) 2026 MCPlama <dev@mcplama.com> */
 /* SPDX-License-Identifier: AGPL-3.0-or-later */
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { Zap, ArrowRight, AlertCircle, Shield, Globe, Activity, Eye, EyeOff } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
@@ -40,9 +40,16 @@ export default function Login() {
   const [form, setForm]     = useState({ email: '', password: '' })
   const [error, setError]   = useState('')
   const [loading, setLoading] = useState(false)
+  const [version, setVersion] = useState('')
   const { login } = useAuth()
   const navigate = useNavigate()
   const set = k => e => setForm(f => ({ ...f, [k]: e.target.value }))
+
+  useEffect(() => {
+    fetch('/health').then(r => r.ok ? r.json() : null).then(data => {
+      if (data?.version) setVersion(data.version)
+    }).catch(() => {})
+  }, [])
 
   const submit = async e => {
     e.preventDefault()
@@ -89,7 +96,7 @@ export default function Login() {
             </div>
           ))}
         </div>
-        <p className="text-[11px] text-t3 font-mono">Mcplama · community edition · ver 1.1</p>
+        <p className="text-[11px] text-t3 font-mono">Mcplama · community edition{version ? ` · ver ${version}` : ''}</p>
       </div>
 
       {/* Right panel */}
