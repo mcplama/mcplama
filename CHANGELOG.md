@@ -1,7 +1,6 @@
 # Changelog
 
-Notable changes since the `v1.0.1` release. These entries cover the commits on
-this branch and the pending change-audit work.
+Notable changes since the `v1.0.1` release.
 
 ## Unreleased
 
@@ -19,6 +18,13 @@ this branch and the pending change-audit work.
   safe change summaries; secret and policy configuration values are excluded.
 - Added pagination and searchable, clickable audit event details in the admin
   portal.
+- Added user groups with group-based MCP server grants, membership management,
+  and connection access checks. Existing direct access requests remain
+  supported.
+- Added direct user creation from the Users page, alongside email and link
+  invitations. Admin-created accounts require an initial password.
+- Added an MCP infrastructure map for exploring configured users, connections,
+  servers, and tools with details and status indicators.
 
 ### Changed
 
@@ -26,6 +32,8 @@ this branch and the pending change-audit work.
   notifications.
 - Updated OAuth setup metadata for registry integrations and refined remote
   OAuth token handling.
+- Added Groups and MCP map entries to admin navigation and made the Groups page
+  follow the shared application theme.
 
 ### Fixed
 
@@ -34,3 +42,8 @@ this branch and the pending change-audit work.
   from completing.
 - Show API errors in the Users page when invitation deletion or access
   revocation fails.
+- Merged the groups and change-audit Alembic branches to restore a single
+  migration head for database startup.
+- Paginated the Groups list in 20-item pages, matching the Users list.
+- Fixed registered tool labels in the Permission Map so their text follows the
+  active light or dark theme.

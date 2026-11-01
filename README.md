@@ -132,7 +132,7 @@ The **Activity** page records MCP calls. **Audit Logs** is a separate admin view
 
 ### Users, groups, and the MCP map
 
-In **Users**, administrators can invite a teammate by email or link, or choose **Add user** to provision an account directly with an initial password. In **Groups**, administrators can organize users and grant MCP server access to a group. A member's group grant is checked when they connect; existing direct access requests remain supported. The **Permission Map** page provides a visual overview of configured users, connections, servers, and discovered tools. It distinguishes configured relationships from active connection state and only shows access relationships supported by MCPlama's authorization data.
+In **Users**, administrators can invite a teammate by email or link, or choose **Add user** to provision an account directly with an initial password. In **Groups**, administrators can organize users and grant MCP server access to a group. The group list is paginated in the same 20-item pages as the Users list. A member's group grant is checked when they connect; existing direct access requests remain supported. The **Permission Map** page provides a visual overview of configured users, connections, servers, and discovered tools. It distinguishes configured relationships from active connection state and only shows access relationships supported by MCPlama's authorization data.
 
 ## Member portal
 

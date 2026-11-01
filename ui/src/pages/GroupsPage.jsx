@@ -5,6 +5,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Plus, RefreshCw, Server, ShieldCheck, Trash2, UsersRound, X } from 'lucide-react'
 import api from '../lib/api'
 import { Spinner } from '../components/ui'
+import { Paginator } from '../components/ui/Paginator'
+import { usePagination } from '../hooks/usePagination'
 import Button from '../components/kit/Button'
 
 const panel = 'rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]'
@@ -36,6 +38,7 @@ export default function GroupsPage() {
   useEffect(() => { load() }, [load])
 
   const selected = groups.find(g => g.id === selectedId) || groups[0] || null
+  const { page, setPage, totalPages, paginated } = usePagination(groups)
   const memberIds = useMemo(() => new Set((selected?.members || []).map(m => m.id)), [selected])
   const serverIds = useMemo(() => new Set((selected?.servers || []).map(s => s.id)), [selected])
   const availableUsers = users.filter(u => !memberIds.has(u.id))
@@ -105,7 +108,7 @@ export default function GroupsPage() {
     <div className="grid gap-5 xl:grid-cols-[300px_1fr]">
       <section className={`${panel} overflow-hidden`}>
         <div className="border-b border-gray-100 px-4 py-3 dark:border-gray-800"><h2 className="text-sm font-semibold text-gray-800 dark:text-white/90">Your groups <span className="ml-1 text-xs font-normal text-gray-400">{groups.length}</span></h2></div>
-        {groups.length === 0 ? <div className="p-6 text-center"><UsersRound size={24} className="mx-auto text-gray-400"/><p className="mt-3 text-sm font-medium text-gray-800 dark:text-white">No groups yet</p><p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Create a group, add users, then grant server access.</p></div> : <div className="max-h-[65vh] space-y-1 overflow-auto p-2">{groups.map(g => <button key={g.id} onClick={() => setSelectedId(g.id)} className={`w-full rounded-xl px-3 py-3 text-left transition ${selected?.id === g.id ? 'bg-brand-50 ring-1 ring-brand-200 dark:bg-brand-500/10 dark:ring-brand-500/30' : 'hover:bg-gray-50 dark:hover:bg-white/[.04]'}`}><span className="block truncate text-sm font-medium text-gray-800 dark:text-white/90">{g.name}</span><span className="mt-1 block text-xs text-gray-500 dark:text-gray-400">{g.members.length} members · {g.servers.length} servers</span></button>)}</div>}
+        {groups.length === 0 ? <div className="p-6 text-center"><UsersRound size={24} className="mx-auto text-gray-400"/><p className="mt-3 text-sm font-medium text-gray-800 dark:text-white">No groups yet</p><p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Create a group, add users, then grant server access.</p></div> : <><div className="max-h-[65vh] space-y-1 overflow-auto p-2">{paginated.map(g => <button key={g.id} onClick={() => setSelectedId(g.id)} className={`w-full rounded-xl px-3 py-3 text-left transition ${selected?.id === g.id ? 'bg-brand-50 ring-1 ring-brand-200 dark:bg-brand-500/10 dark:ring-brand-500/30' : 'hover:bg-gray-50 dark:hover:bg-white/[.04]'}`}><span className="block truncate text-sm font-medium text-gray-800 dark:text-white/90">{g.name}</span><span className="mt-1 block text-xs text-gray-500 dark:text-gray-400">{g.members.length} members · {g.servers.length} servers</span></button>)}</div><Paginator page={page} totalPages={totalPages} onChange={setPage} total={groups.length}/></>}
       </section>
       {selected ? <section className="space-y-5">
         <div className={`${panel} flex flex-wrap items-start justify-between gap-3 p-5`}><div><h2 className="text-lg font-semibold text-gray-800 dark:text-white/90">{selected.name}</h2><p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{selected.description || 'No description'}</p></div><button className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-error-600 transition-colors hover:bg-error-50 dark:text-error-400 dark:hover:bg-error-500/10" onClick={removeGroup} disabled={saving}><Trash2 size={14}/> Delete group</button></div>
