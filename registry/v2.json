@@ -2229,6 +2229,35 @@
         "shared",
         "per_user"
       ]
+    },
+    {
+      "id": "mcp-arcmira-v2",
+      "name": "Arcmira: YouTube Transcript Search",
+      "publisher": "Arcmira",
+      "logo_url": "https://mcp.arcmira.com/icon.png",
+      "description": "Search indexed YouTube and podcast transcripts for timestamped passages, speaker appearances, sponsors, and recommendations.",
+      "category": "Search & Web Data",
+      "official": true,
+      "version": "0.10.7",
+      "docs_url": "https://arcmira.com/docs/mcp-server",
+      "runtime": "remote",
+      "transport": "streamable_http",
+      "url": "https://mcp.arcmira.com/mcp",
+      "auth_type": "oauth",
+      "auth_mode": "per_user",
+      "remote_auth": "oauth",
+      "oauth_client": {
+        "required": false,
+        "registration": "discovered",
+        "fields": []
+      },
+      "tools": [
+        "arcmira_describe",
+        "arcmira_execute_read",
+        "arcmira_execute_write",
+        "arcmira_feedback"
+      ],
+      "requirements": "Each user authorizes their own Arcmira account through OAuth. The endpoint requires HTTPS access to mcp.arcmira.com and api.arcmira.com; browser access to arcmira.com is needed for sign-in and consent. Catalog inspection may receive an OAuth challenge and is not a health check. Premium reads can start transcript generation and use plan credits or the account's configured on-demand budget; monitor alerts also consume credits. Review Arcmira's plan and budget limits before using these tools."
     }
   ]
 }

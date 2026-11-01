@@ -195,7 +195,17 @@ export default function McpOverview() {
   }
   const onPointerUp = () => { drag.current = null }
   const onCanvasDown = e => { if (e.target.closest('[data-node]')) return; drag.current = { pan: true, startX: e.clientX, startY: e.clientY, x: viewport.x, y: viewport.y } }
-  const onWheel = e => { e.preventDefault(); const factor = e.deltaY < 0 ? 1.1 : .91; setViewport(v => ({ ...v, scale: Math.max(.28, Math.min(2, v.scale * factor)) })) }
+  useEffect(() => {
+    const element = canvas.current
+    if (!element) return
+    const onWheel = e => {
+      e.preventDefault()
+      const factor = e.deltaY < 0 ? 1.1 : .91
+      setViewport(v => ({ ...v, scale: Math.max(.28, Math.min(2, v.scale * factor)) }))
+    }
+    element.addEventListener('wheel', onWheel, { passive: false })
+    return () => element.removeEventListener('wheel', onWheel)
+  }, [])
   const canvasMove = e => {
     if (!drag.current) return
     if (drag.current.pan) { const d = drag.current; setViewport(v => ({ ...v, x: d.x + e.clientX - d.startX, y: d.y + e.clientY - d.startY })); return }
@@ -241,7 +251,7 @@ export default function McpOverview() {
     {isPartial && <div className="border-b border-amber-400/20 bg-amber-500/10 px-5 py-2 text-xs text-amber-200">Partial topology: {errors.length ? `failed to load ${errors.join(', ')}` : 'one or more API lists exceed the 200-record display limit'}. Missing relationships are not inferred.</div>}
     {loading && !data.servers && <div className="absolute inset-0 z-20 flex items-center justify-center bg-[#070b12]"><Spinner size={24}/></div>}
     <div className="relative flex min-h-0 flex-1 overflow-hidden">
-      <div ref={canvas} onPointerDown={onCanvasDown} onPointerMove={canvasMove} onPointerUp={onPointerUp} onPointerCancel={onPointerUp} onWheel={onWheel} className="relative min-h-[620px] flex-1 cursor-grab overflow-hidden active:cursor-grabbing" title="Drag the canvas to pan · drag a node to rearrange · scroll to zoom">
+      <div ref={canvas} onPointerDown={onCanvasDown} onPointerMove={canvasMove} onPointerUp={onPointerUp} onPointerCancel={onPointerUp} className="relative min-h-[620px] flex-1 cursor-grab overflow-hidden active:cursor-grabbing" title="Drag the canvas to pan · drag a node to rearrange · scroll to zoom">
         <svg className="absolute inset-0 h-full w-full" aria-label="MCPlama network graph" role="img">
           <defs><pattern id="dots" width="24" height="24" patternUnits="userSpaceOnUse"><circle cx="1" cy="1" r="1" fill="var(--map-grid-dot)" opacity=".7"/></pattern><marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0 L8 4 L0 8 z" fill="#64748b"/></marker></defs>
           <rect width="100%" height="100%" fill="url(#dots)"/>
@@ -266,7 +276,7 @@ export default function McpOverview() {
               return <g key={n.id} data-node="true" transform={`translate(${p.x} ${p.y})`} onPointerDown={e => onPointerDown(e, n)} onClick={() => handleNodeClick(n)} className="cursor-grab active:cursor-grabbing" opacity={highlighted ? 1 : .2}>
                 <title>Drag to rearrange · click to inspect {n.type}</title><rect width={nodeW} height={nodeH} rx={n.type === 'user' ? 22 : 10} fill={pal.fill} stroke={chosen ? '#f8fafc' : active ? pal.stroke : '#f59e0b'} strokeWidth={chosen ? 2.5 : 1.4}/>
                 <foreignObject x="12" y="15" width="24" height="24"><div xmlns="http://www.w3.org/1999/xhtml" className="flex h-6 w-6 items-center justify-center" style={{color: active ? pal.stroke : '#fbbf24'}}><Icon size={17}/></div></foreignObject>
-                <text x="45" y="31" className="map-label">{short(n.label, 20)}</text><text x="45" y="49" className="map-sub">{short(n.sub, 23)}</text>
+                <text x="45" y="31" className="map-label">{short(n.label, 17)}</text><text x="45" y="49" className="map-sub">{short(n.sub, 20)}</text>
                 <circle cx="166" cy="60" r="3.5" fill={active ? '#34d399' : '#f59e0b'}/><text x="158" y="65" textAnchor="end" className="map-status">{short(n.status, 20)}</text>
               </g>
             })}
