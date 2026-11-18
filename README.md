@@ -3,13 +3,8 @@
   MCPlama
 </h1>
 
-<p align="center">
-  <strong>Run and manage your team's MCP servers from one place</strong>
-</p>
-
-<p align="center">
-  Open-source · Self-hosted · MCP Gateway &amp; Control Plane
-</p>
+<p align="center"><strong>Govern MCP access for AI agents and clients.</strong></p>
+<p align="center">Open source · Self hosted · MCP gateway and control plane</p>
 
 <p align="center">
   <a href="https://github.com/mcplama/mcplama/stargazers"><img src="https://img.shields.io/github/stars/mcplama/mcplama?style=social" alt="GitHub stars"></a>
@@ -18,63 +13,49 @@
   <a href="https://hub.docker.com/r/mcplama/mcplama"><img src="https://img.shields.io/docker/pulls/mcplama/mcplama" alt="Docker pulls"></a>
 </p>
 
-MCPlama is a self-hosted MCP gateway and control plane for administrators and organizations operating AI agent infrastructure. It centralizes MCP server management, credentials, access policies, client connectivity, and audit visibility.
+MCPlama is an open-source, self-hosted **MCP gateway and governance platform**. It gives AI agents and MCP-compatible clients a controlled way to connect to local and remote Model Context Protocol (MCP) servers. Manage server connections, credentials, access policies, and activity from one place.
 
-Use it to centralize MCP server lifecycle, credentials, access policies, connections, and audit events while your AI clients connect through controlled MCP endpoints.
+Instead of configuring every client with direct server access and credentials, register MCP servers in MCPlama and issue controlled connection URLs. MCPlama checks access and proxies requests to the selected server.
 
-![MCPlama overview](docs/static/img/mcplama_overview.png)
+![MCPlama sequence diagram showing access checks, direct proxying to remote MCP servers, and reuse of local containers; the broker starts a container only when needed.](docs/static/img/mcplama-diagram.png)
 
-Instead of giving every AI client direct access to MCP servers and their credentials, configure your servers once in MCPlama and give each user a controlled connection URL.
+## Why use an MCP gateway?
 
-## Why MCPlama?
+As AI agents connect to more tools, it becomes harder to keep track of which agents can reach which servers and what credentials they use. Direct client-to-server configuration can scatter secrets and make access difficult to review or revoke.
 
-MCP is easy to start with, but running multiple MCP servers across a team gets messy fast.
+MCPlama provides a central place to:
 
-Without a control plane:
+- Manage local and remote MCP servers
+- Create controlled MCP connection URLs for compatible AI clients
+- Store and manage OAuth and API credentials
+- Set user and server access policies
+- Review MCP activity and administrative audit events
+- Explore users, connections, servers, tools, and permissions with Permission Map
+- Manage MCP server catalog entries and server lifecycle
 
-- 🔐 Credentials end up scattered across developer machines
-- 🔌 Every client needs its own MCP configuration
-- 👥 Access becomes difficult to grant and revoke
-- 📋 Teams have little visibility into MCP activity
-- 🐳 MCP servers still need somewhere to run and be managed
-- 🛡️ Runtime access needs to be isolated from the gateway
+MCPlama can run locally for evaluation or as self-hosted infrastructure. MCP server containers are launched through a separate broker process in the recommended multi-container deployment.
 
-MCPlama gives you one control point:
+## What you can do
 
-- 🌐 Controlled MCP connection URLs for your AI clients
-- 🔐 Centralized OAuth and API credentials
-- 👥 User and server access policies
-- 👥 Group membership and MCP server grants, alongside direct user provisioning
-- 🗺️ Permission Map for exploring users, connections, servers, and registered tools
-- 📋 MCP activity logs and administrative audit logs for configuration and access changes
-- 📦 MCP server catalog and lifecycle management
-- 🛡️ Separate broker boundary for MCP container execution
+### Connect AI agents to MCP servers
 
-Start locally with Docker. Move to shared team infrastructure when you need it.
+Configure a server once in MCPlama, then connect compatible clients through an MCPlama URL. User-specific connection tokens associate requests with an access grant while the underlying service credentials remain managed by MCPlama.
 
-![MCPlama registry showing available MCP servers.](docs/static/img/mcplama-registry-v2.png)
+### Govern access
 
-## Documentation
+Manage users, groups, and server grants. Configure access policies and revoke access centrally. Permission Map provides a visual overview of configured users, connections, servers, tools, and supported access relationships.
 
-See the [`docs`](docs/) directory for architecture, security, deployment, API, and development documentation.
+### Manage credentials
 
-- [Architecture](docs/ARCHITECTURE.md)
-- [Security model](docs/SECURITY-MODEL.md)
-- [Docker deployment](docs/DOCKER.md)
-- [API reference](docs/API.md)
-- [Contributing](CONTRIBUTING.md)
+Configure API credentials and OAuth for supported MCP servers. For remote OAuth servers, users can authorize their own provider accounts when that server's setup supports it. Provider tokens are used by MCPlama when proxying that user's requests.
 
-## Quickstart
+### Review activity
 
-This quickstart will show you how to:
+Activity records MCP calls. Audit Logs records administrative changes such as server configuration, credential changes, invitations, user access, policies, and grants or revocations. Secret values are not recorded in audit entries.
 
-1. Start MCPlama locally with Docker
-2. Add and authorize an MCP server
-3. Connect an MCP client through MCPlama
+## Quick start
 
-### Start MCPlama
-
-Pull and run the published image:
+Run MCPlama locally with Docker:
 
 ```bash
 docker pull mcplama/mcplama:latest
@@ -86,84 +67,29 @@ docker run -d --name mcplama \
   mcplama/mcplama:latest
 ```
 
-Open:
-
-```text
-http://localhost:8080
-```
-
-Complete the setup wizard to create your admin account.
-
-There is no default admin account.
+Open [http://localhost:8080](http://localhost:8080) and complete the setup wizard to create an administrator account. There is no default administrator account.
 
 ### Add an MCP server
 
-1. Open **Catalog**
-2. Choose one of the pre-configured MCP servers
-3. Click **Install**
-4. Open the server's **Authorization** tab
-5. Follow the setup steps and provide the required credentials
-6. Click **Authorize**
+1. Open **Catalog** and choose a preconfigured MCP server.
+2. Select **Install**.
+3. Open the server's **Authorization** tab and follow its setup steps.
+4. Select **Authorize**.
 
-![Animated walkthrough of adding an MCP server to MCPlama](docs/static/img/overview.gif)
+![Walkthrough of adding an MCP server to MCPlama](docs/static/img/overview.gif)
 
-### Connect through MCPlama
+### Connect an MCP client
 
-Open the server's **Connect** tab and create a connection token.
-
-MCPlama gives you a URL like:
+Open the server's **Connect** tab and create a connection token. MCPlama provides a URL similar to:
 
 ```text
 http://localhost:8000/connect/mcp_your_token
 ```
 
-Each user × server pair gets its own connection token. The underlying API credentials stay in MCPlama instead of being copied into the AI client's configuration.
-
-You now have an MCP server running behind MCPlama with centralized credentials, access control, and auditing.
-
-### Remote MCP OAuth
-
-For a remote MCP server that uses OAuth, an administrator configures the provider's OAuth client details in the server settings. Each member then authorizes their own provider account from the member portal. The OAuth client can use deployment-wide credentials or credentials supplied by each user, when the provider supports that setup. Provider tokens stay in MCPlama and are used when proxying that member's requests.
-
-See [Registry documentation](docs/REGISTRY.md#remote-mcp-and-oauth) for remote catalog metadata and OAuth client modes.
-
-### Audit logs
-
-The **Activity** page records MCP calls. **Audit Logs** is a separate admin view for server configuration and credential changes, invitations, user access changes, policies, and access grants or revocations. Entries show who made the change, when, the affected resource, and a safe summary of fields or scopes. Secret values are never recorded.
-
-### Users, groups, and the MCP map
-
-In **Users**, administrators can invite a teammate by email or link, or choose **Add user** to provision an account directly with an initial password. In **Groups**, administrators can organize users and grant MCP server access to a group. The group list is paginated in the same 20-item pages as the Users list. A member's group grant is checked when they connect; existing direct access requests remain supported. The **Permission Map** page provides a visual overview of configured users, connections, servers, and discovered tools. It distinguishes configured relationships from active connection state and only shows access relationships supported by MCPlama's authorization data.
-
-## Member portal
-
-Team members can see and connect to the MCP servers available to them without receiving the underlying service credentials.
-
-![MCPlama member portal showing available MCP servers and connection status.](docs/static/img/mcplama-member-v2.png)
-
-## How it works
-
-When an AI client connects through MCPlama, the gateway:
-
-1. Resolves the connection token to a user and server
-2. Validates the request origin
-3. Checks access policies
-4. Injects OAuth/API credentials
-5. Writes the audit log
-6. Proxies the request to the MCP server
-
-MCP server containers are started by a separate **broker** process.
-
-The broker is the only component with Docker socket access in the recommended multi-container deployment. The gateway itself has no Docker access, and runner containers never receive the Docker socket.
-
-See [Architecture](docs/ARCHITECTURE.md) and [Security model](docs/SECURITY-MODEL.md) for the full design.
-
-## Connecting other MCP clients
-
-Your connection URL can also be used with other MCP clients.
+Use that URL in an MCP-compatible client. Each user and server pair gets its own connection token.
 
 <details>
-<summary><strong>Claude Desktop</strong></summary>
+<summary><strong>Example: Claude Desktop</strong></summary>
 
 ```json
 {
@@ -175,12 +101,10 @@ Your connection URL can also be used with other MCP clients.
 }
 ```
 
-Restart Claude Desktop after updating the configuration.
-
 </details>
 
 <details>
-<summary><strong>VS Code + GitHub Copilot</strong></summary>
+<summary><strong>Example: VS Code</strong></summary>
 
 Create `.vscode/mcp.json`:
 
@@ -199,9 +123,9 @@ Requires VS Code 1.99+ with GitHub Copilot.
 </details>
 
 <details>
-<summary><strong>Cursor</strong></summary>
+<summary><strong>Example: Cursor</strong></summary>
 
-Edit `~/.cursor/mcp.json`:
+Add the URL to `~/.cursor/mcp.json`:
 
 ```json
 {
@@ -215,26 +139,46 @@ Edit `~/.cursor/mcp.json`:
 
 </details>
 
-## Production
+## How request governance works
 
-The quickstart is intended for evaluating MCPlama locally.
+When an AI client connects through MCPlama, the gateway:
 
-For production deployments, provide your own secrets and put an HTTPS reverse proxy in front of MCPlama.
+1. Resolves the connection token to a user and MCP server.
+2. Validates the request origin.
+3. Checks access policies.
+4. Uses the configured OAuth or API credentials.
+5. Records the MCP activity and proxies the request to the server.
 
-See [Docker deployment](docs/DOCKER.md) and [Security model](docs/SECURITY-MODEL.md) before exposing MCPlama outside a trusted environment.
+In the recommended multi-container deployment, a separate broker process starts MCP server containers. The broker is the only component with Docker socket access; the gateway and runner containers do not receive the Docker socket.
+
+## Documentation
+
+[![Architecture diagram of mcplama/mcplama](https://gitdiagram.com/mcplama/mcplama/diagram.png)](https://gitdiagram.com/mcplama/mcplama?utm_source=readme&utm_medium=picture)
+
+- [Architecture](docs/ARCHITECTURE.md)
+- [Security model](docs/SECURITY-MODEL.md)
+- [Docker deployment](docs/DOCKER.md)
+- [API reference](docs/API.md)
+- [Registry and remote MCP OAuth](docs/REGISTRY.md)
+- [Contributing](CONTRIBUTING.md)
+
+## Production deployment
+
+The quick start is intended for local evaluation. For production, configure deployment secrets and put an HTTPS reverse proxy in front of MCPlama. Review the [Docker deployment guide](docs/DOCKER.md) and [security model](docs/SECURITY-MODEL.md) before exposing an instance outside a trusted environment.
+
+## Contributors
+
+Thank you to everyone who helps make MCPlama better by reporting issues, contributing code, improving documentation, and sharing feedback.
+
+- [mcplama](https://github.com/mcplama)
+- [midoriyas90](https://github.com/midoriyas90)
+
+Contributions of all kinds are welcome. Open an [issue](https://github.com/mcplama/mcplama/issues) or submit a [pull request](https://github.com/mcplama/mcplama/pulls).
 
 ## Contributing
 
-Contributions and feedback are welcome.
-
-- [Contribution guidelines](CONTRIBUTING.md)
-- [Development setup](docs/DEVELOPMENT.md)
-- [Registry requests](docs/REGISTRY.md)
-
-If you're already running MCP infrastructure for a team, feedback around credentials, access control, deployment, auditing, and MCP server lifecycle is especially useful.
+Contributions, bug reports, and feedback are welcome. See the [contribution guidelines](CONTRIBUTING.md), [development setup](docs/DEVELOPMENT.md), and [registry request guide](docs/REGISTRY.md).
 
 ## License
 
-MCPlama is licensed under the GNU Affero General Public License, version 3 or any later version. See [LICENSE](LICENSE).
-
-Third-party dependencies remain under their respective licenses. See [THIRD-PARTY-NOTICES](THIRD-PARTY-NOTICES).
+MCPlama is licensed under the GNU Affero General Public License, version 3 or any later version. See [LICENSE](LICENSE). Third-party dependencies remain under their respective licenses; see [THIRD-PARTY-NOTICES](THIRD-PARTY-NOTICES).
